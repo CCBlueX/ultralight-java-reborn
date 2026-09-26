@@ -1,3 +1,4 @@
+#include "net_janrupf_ujr_api_bitmap_UlBitmapFormat_native_access.hpp"
 #include "net_janrupf_ujr_api_event_UlKeyEvent_native_access.hpp"
 #include "net_janrupf_ujr_api_event_UlKeyEventModifiers_native_access.hpp"
 #include "net_janrupf_ujr_api_event_UlKeyEventType_native_access.hpp"
@@ -6,6 +7,8 @@
 #include "net_janrupf_ujr_api_event_UlMouseEventType_native_access.hpp"
 #include "net_janrupf_ujr_api_event_UlScrollEvent_native_access.hpp"
 #include "net_janrupf_ujr_api_event_UlScrollEventType_native_access.hpp"
+#include "net_janrupf_ujr_api_gpu_UlRenderTarget_native_access.hpp"
+#include "net_janrupf_ujr_api_math_FloatRect_native_access.hpp"
 #include "net_janrupf_ujr_platform_jni_exception_JniJavaScriptException_native_access.hpp"
 #include "net_janrupf_ujr_platform_jni_impl_JNIUlBitmapSurface_native_access.hpp"
 #include "net_janrupf_ujr_platform_jni_impl_JNIUlView.h"
@@ -169,6 +172,49 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlView_nativ
         JNIUlSurfaceNative::HANDLE.set(env, jni_surface_factory_ref, reinterpret_cast<jlong>(surface));
 
         return jni_surface_factory_ref.leak();
+    });
+}
+
+JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlView_nativeRenderTarget(JNIEnv *env, jobject self) {
+    return ujr::jni_entry_guard(env, [&](auto env) -> jobject {
+        using ujr::native_access::FloatRect;
+        using ujr::native_access::JNIUlView;
+        using ujr::native_access::UlBitmapFormat;
+        using ujr::native_access::UlRenderTarget;
+
+        auto *view = reinterpret_cast<ultralight::View *>(JNIUlView::HANDLE.get(env, self));
+        auto target = view->render_target();
+
+        auto j_format = ujr::JniLocalRef<jobject>::null(env);
+        switch (target.texture_format) {
+            case ultralight::BitmapFormat::A8_UNORM:
+                j_format = UlBitmapFormat::A8_UNORM.get(env);
+                break;
+            case ultralight::BitmapFormat::BGRA8_UNORM_SRGB:
+                j_format = UlBitmapFormat::BGRA8_UNORM_SRGB.get(env);
+                break;
+            default:
+                throw std::runtime_error("Unknown bitmap format");
+        }
+
+        auto j_uv_coords = FloatRect::CLAZZ.alloc_object(env);
+        FloatRect::LEFT.set(env, j_uv_coords, target.uv_coords.left);
+        FloatRect::TOP.set(env, j_uv_coords, target.uv_coords.top);
+        FloatRect::RIGHT.set(env, j_uv_coords, target.uv_coords.right);
+        FloatRect::BOTTOM.set(env, j_uv_coords, target.uv_coords.bottom);
+
+        auto j_target = UlRenderTarget::CLAZZ.alloc_object(env);
+        UlRenderTarget::IS_EMPTY.set(env, j_target, static_cast<jboolean>(target.is_empty));
+        UlRenderTarget::WIDTH.set(env, j_target, static_cast<jint>(target.width));
+        UlRenderTarget::HEIGHT.set(env, j_target, static_cast<jint>(target.height));
+        UlRenderTarget::TEXTURE_ID.set(env, j_target, static_cast<jint>(target.texture_id));
+        UlRenderTarget::TEXTURE_WIDTH.set(env, j_target, static_cast<jint>(target.texture_width));
+        UlRenderTarget::TEXTURE_HEIGHT.set(env, j_target, static_cast<jint>(target.texture_height));
+        UlRenderTarget::TEXTURE_FORMAT.set(env, j_target, j_format.get());
+        UlRenderTarget::UV_COORDS.set(env, j_target, j_uv_coords.get());
+        UlRenderTarget::RENDER_BUFFER_ID.set(env, j_target, static_cast<jint>(target.render_buffer_id));
+
+        return j_target.leak();
     });
 }
 

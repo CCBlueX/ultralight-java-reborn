@@ -245,7 +245,15 @@ namespace ujr {
             this->resolve(env);
 
             auto obj = JniTypeConverter<typename JniType<Class>::Type>::convert_to_jni(self);
-            auto val = JniTypeConverter<T>::convert_to_jni(static_cast<T>(value));
+
+            typename JniType<T>::Type val;
+            if constexpr (IsJniClass<T>) {
+                // Object fields take any reference to a matching object
+                val = JniTypeConverter<V>::convert_to_jni(value);
+            } else {
+                val = JniTypeConverter<T>::convert_to_jni(static_cast<T>(value));
+            }
+
             _internal::JniFieldAccessor<typename JniType<T>::Type>::set(env, obj, this->id, val);
 
             JniExceptionCheck::throw_if_pending(env);

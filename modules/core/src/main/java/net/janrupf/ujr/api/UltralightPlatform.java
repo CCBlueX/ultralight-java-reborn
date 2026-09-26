@@ -2,6 +2,7 @@ package net.janrupf.ujr.api;
 
 import net.janrupf.ujr.api.clipboard.UltralightClipboard;
 import net.janrupf.ujr.api.filesystem.UltralightFilesystem;
+import net.janrupf.ujr.api.gpu.UltralightGPUDriver;
 import net.janrupf.ujr.api.logger.UltralightLogger;
 import net.janrupf.ujr.api.surface.UltralightSurfaceFactory;
 import net.janrupf.ujr.core.platform.abstraction.UlPlatform;
@@ -122,6 +123,26 @@ public class UltralightPlatform {
      */
     public UltralightClipboard getClipboard() {
         return platform.getClipboard();
+    }
+
+    /**
+     * Set the GPU driver, which renders accelerated views on the GPU of the application.
+     * <p>
+     * This has to be set before the renderer is created.
+     *
+     * @param driver the GPU driver, or {@code null} to render on the CPU only
+     */
+    public void setGPUDriver(UltralightGPUDriver driver) {
+        platform.setGPUDriver(driver);
+    }
+
+    /**
+     * Retrieves the GPU driver used by Ultralight.
+     *
+     * @return the GPU driver, or {@code null}, if none is set
+     */
+    public UltralightGPUDriver getGPUDriver() {
+        return platform.getGPUDriver();
     }
 
     // TODO: fix doc comment references

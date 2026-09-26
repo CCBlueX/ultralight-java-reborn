@@ -2,6 +2,7 @@ package net.janrupf.ujr.platform.jni.impl;
 
 import net.janrupf.ujr.api.clipboard.UltralightClipboard;
 import net.janrupf.ujr.api.filesystem.UltralightFilesystem;
+import net.janrupf.ujr.api.gpu.UltralightGPUDriver;
 import net.janrupf.ujr.api.logger.UltralightLogger;
 import net.janrupf.ujr.api.surface.UltralightSurfaceFactory;
 import net.janrupf.ujr.core.platform.abstraction.UlPlatform;
@@ -10,6 +11,7 @@ import net.janrupf.ujr.core.platform.abstraction.UlRenderer;
 import net.janrupf.ujr.platform.jni.ffi.NativeAccess;
 import net.janrupf.ujr.platform.jni.wrapper.clipboard.JNIUlClipboard;
 import net.janrupf.ujr.platform.jni.wrapper.filesystem.JNIUlFilesystem;
+import net.janrupf.ujr.platform.jni.wrapper.gpu.JNIUlGPUDriver;
 import net.janrupf.ujr.platform.jni.wrapper.logger.JNIUlLogger;
 import net.janrupf.ujr.platform.jni.wrapper.surface.JNIUlSurfaceFactory;
 
@@ -115,6 +117,21 @@ public class JNIUlPlatform implements UlPlatform {
     }
 
     private native Object nativeSurfaceFactory();
+
+    @Override
+    public void setGPUDriver(UltralightGPUDriver driver) {
+        nativeSetGPUDriver(driver == null ? null : new JNIUlGPUDriver(driver));
+    }
+
+    private native void nativeSetGPUDriver(JNIUlGPUDriver driver);
+
+    @Override
+    public UltralightGPUDriver getGPUDriver() {
+        JNIUlGPUDriver driver = nativeGetGPUDriver();
+        return driver == null ? null : driver.getDelegate();
+    }
+
+    private native JNIUlGPUDriver nativeGetGPUDriver();
 
     @Override
     public UlRenderer createRenderer() {

@@ -7,6 +7,8 @@ import net.janrupf.ujr.api.bitmap.UltralightBitmap;
 import net.janrupf.ujr.api.bitmap.UltralightBitmapSurface;
 import net.janrupf.ujr.api.clipboard.UltralightClipboard;
 import net.janrupf.ujr.api.filesystem.UltralightFilesystem;
+import net.janrupf.ujr.api.gpu.UlRenderBuffer;
+import net.janrupf.ujr.api.gpu.UlRenderTarget;
 import net.janrupf.ujr.api.javascript.JavaScriptException;
 import net.janrupf.ujr.api.listener.UltralightLoadListener;
 import net.janrupf.ujr.api.util.NioUltralightBuffer;
@@ -34,7 +36,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Renders a page from a local server and checks the result, which covers loading the natives and the Ultralight
- * runtime, listeners, JavaScript, cookies, fetch, WebSockets and painting.
+ * runtime, listeners, JavaScript, cookies, fetch, WebSockets and painting. A second, accelerated view checks that
+ * Ultralight drives a GPU driver.
  * <p>
  * Exits with a non-zero status if anything doesn't work.
  */
@@ -81,6 +84,9 @@ public final class SmokeTest {
                 .bitmapAlignment(0)
                 .build());
 
+        RecordingGPUDriver gpuDriver = new RecordingGPUDriver();
+        platform.setGPUDriver(gpuDriver);
+
         UltralightRenderer renderer = UltralightRenderer.getOrCreate();
         UltralightView view = renderer.createView(64, 64, new UltralightViewConfigBuilder().build());
         view.setLoadListener(new UltralightLoadListener() {
@@ -98,6 +104,9 @@ public final class SmokeTest {
         });
         view.loadURL("http://127.0.0.1:" + httpServer.getAddress().getPort() + "/");
 
+        UltralightView gpuView = renderer.createView(64, 64, new UltralightViewConfigBuilder().accelerated(true).build());
+        gpuView.loadHTML("<html><body style=\"background: #0000ff\">gpu</body></html>");
+
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
         while (!EXPECTED_TITLE.equals(view.title()) && System.nanoTime() < deadline) {
             frame(renderer);
@@ -110,6 +119,8 @@ public final class SmokeTest {
 
         String title = view.title();
         int[] pixel = centerPixel((UltralightBitmapSurface) view.surface());
+        UlRenderTarget target = gpuView.renderTarget();
+        UlRenderBuffer targetBuffer = gpuDriver.renderBuffers.get(target.renderBufferId());
 
         ujr.cleanup();
         httpServer.stop(0);
@@ -125,6 +136,23 @@ public final class SmokeTest {
 
         if (pixel[0] > 50 || pixel[1] < 200 || pixel[2] > 50) {
             System.err.println("Smoke test failed: the page was not painted green");
+            System.exit(1);
+        }
+
+        System.out.printf("GPU driver: %d uploaded textures, %d render buffers, %d clears, %d draws%n",
+                gpuDriver.uploadedTextures, gpuDriver.renderBuffers.size(), gpuDriver.clears, gpuDriver.draws);
+        System.out.println("Render target: " + target.width() + "x" + target.height() + " in texture " +
+                target.textureId() + " (" + target.textureWidth() + "x" + target.textureHeight() + ", " +
+                target.textureFormat() + "), uv " + target.uvCoords());
+
+        if (target.isEmpty() || targetBuffer == null || targetBuffer.textureId() != target.textureId() ||
+                target.width() != 64 || target.height() != 64 || target.uvCoords().getRight() <= 0) {
+            System.err.println("Smoke test failed: the accelerated view has no render target");
+            System.exit(1);
+        }
+
+        if (gpuDriver.clears == 0 || gpuDriver.draws == 0) {
+            System.err.println("Smoke test failed: nothing was drawn through the GPU driver");
             System.exit(1);
         }
 
