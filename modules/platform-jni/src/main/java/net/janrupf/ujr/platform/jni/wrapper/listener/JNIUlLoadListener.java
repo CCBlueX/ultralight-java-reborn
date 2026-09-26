@@ -3,6 +3,7 @@ package net.janrupf.ujr.platform.jni.wrapper.listener;
 import net.janrupf.ujr.api.UltralightView;
 import net.janrupf.ujr.api.listener.UltralightLoadListener;
 import net.janrupf.ujr.platform.jni.ffi.NativeAccess;
+import net.janrupf.ujr.platform.jni.impl.JNIUlView;
 
 public class JNIUlLoadListener {
     private final UltralightLoadListener delegate;
@@ -12,18 +13,18 @@ public class JNIUlLoadListener {
     }
 
     @NativeAccess
-    public void onBeginLoading(UltralightView view, long frameId, boolean isMainFrame, String url) {
-        delegate.onBeginLoading(view, frameId, isMainFrame, url);
+    public void onBeginLoading(JNIUlView view, long frameId, boolean isMainFrame, String url) {
+        delegate.onBeginLoading(new UltralightView(view), frameId, isMainFrame, url);
     }
 
     @NativeAccess
-    public void onFinishLoading(UltralightView view, long frameId, boolean isMainFrame, String url) {
-        delegate.onFinishLoading(view, frameId, isMainFrame, url);
+    public void onFinishLoading(JNIUlView view, long frameId, boolean isMainFrame, String url) {
+        delegate.onFinishLoading(new UltralightView(view), frameId, isMainFrame, url);
     }
 
     @NativeAccess
     public void onFailLoading(
-            UltralightView view,
+            JNIUlView view,
             long frameId,
             boolean isMainFrame,
             String url,
@@ -31,21 +32,21 @@ public class JNIUlLoadListener {
             String errorDomain,
             int errorCode
     ) {
-        delegate.onFailLoading(view, frameId, isMainFrame, url, description, errorDomain, errorCode);
+        delegate.onFailLoading(new UltralightView(view), frameId, isMainFrame, url, description, errorDomain, errorCode);
     }
 
     @NativeAccess
-    public void onWindowObjectReady(UltralightView view, long frameId, boolean isMainFrame, String url) {
-        delegate.onWindowObjectReady(view, frameId, isMainFrame, url);
+    public void onWindowObjectReady(JNIUlView view, long frameId, boolean isMainFrame, String url) {
+        delegate.onWindowObjectReady(new UltralightView(view), frameId, isMainFrame, url);
     }
 
     @NativeAccess
-    public void onDOMReady(UltralightView view, long frameId, boolean isMainFrame, String url) {
-        delegate.onDOMReady(view, frameId, isMainFrame, url);
+    public void onDOMReady(JNIUlView view, long frameId, boolean isMainFrame, String url) {
+        delegate.onDOMReady(new UltralightView(view), frameId, isMainFrame, url);
     }
 
     @NativeAccess
-    public void onUpdateHistory(UltralightView view) {
-        delegate.onUpdateHistory(view);
+    public void onUpdateHistory(JNIUlView view) {
+        delegate.onUpdateHistory(new UltralightView(view));
     }
 }

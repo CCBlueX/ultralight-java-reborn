@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #include <jni.h>
 
 #include <utility>
@@ -97,15 +99,14 @@ namespace ujr {
     JNI_VALUE_TYPE_SPECIALIZATION(jfloat, "F");
     JNI_VALUE_TYPE_SPECIALIZATION(jdouble, "D");
 
-#if _MSC_VER
-    // Weird special case on MSVC: since long is 32bit even on 64bit Windows, JniType<jint> fails to specialize properly
-
-    template<> struct JniType<int> {
+    // Older JDKs define jint as long on Windows, which leaves int without a specialization
+    template<typename T>
+        requires(std::is_same_v<T, int> && !std::is_same_v<int, jint>)
+    struct JniType<T> {
         using Type = jint;
 
         static constexpr JniClassName Name = "I";
     };
-#endif
 
 #undef JNI_VALUE_TYPE_SPECIALIZATION
 

@@ -17,28 +17,28 @@ public class JNIUlViewListener {
     }
 
     @NativeAccess
-    public void onChangeTitle(UltralightView view, String title) {
-        delegate.onChangeTitle(view, title);
+    public void onChangeTitle(JNIUlView view, String title) {
+        delegate.onChangeTitle(new UltralightView(view), title);
     }
 
     @NativeAccess
-    public void onChangeURL(UltralightView view, String url) {
-        delegate.onChangeURL(view, url);
+    public void onChangeURL(JNIUlView view, String url) {
+        delegate.onChangeURL(new UltralightView(view), url);
     }
 
     @NativeAccess
-    public void onChangeTooltip(UltralightView view, String tooltip) {
-        delegate.onChangeTooltip(view, tooltip);
+    public void onChangeTooltip(JNIUlView view, String tooltip) {
+        delegate.onChangeTooltip(new UltralightView(view), tooltip);
     }
 
     @NativeAccess
-    public void onChangeCursor(UltralightView view, UlCursor cursor) {
-        delegate.onChangeCursor(view, cursor);
+    public void onChangeCursor(JNIUlView view, UlCursor cursor) {
+        delegate.onChangeCursor(new UltralightView(view), cursor);
     }
 
     @NativeAccess
     public void onAddConsoleMessage(
-            UltralightView view,
+            JNIUlView view,
             UlMessageSource source,
             UlMessageLevel level,
             String message,
@@ -46,27 +46,27 @@ public class JNIUlViewListener {
             long columnNumber,
             String sourceId
     ) {
-        delegate.onAddConsoleMessage(view, source, level, message, lineNumber, columnNumber, sourceId);
+        delegate.onAddConsoleMessage(new UltralightView(view), source, level, message, lineNumber, columnNumber, sourceId);
     }
 
     @NativeAccess
     public JNIUlView onCreateChildView(
-            UltralightView view,
+            JNIUlView view,
             String openerUrl,
             String targetUrl,
             boolean isPopup,
             IntRect popupRect
     ) {
-        return (JNIUlView) delegate.onCreateChildView(view, openerUrl, targetUrl, isPopup, popupRect).getImplementation();
+        return (JNIUlView) delegate.onCreateChildView(new UltralightView(view), openerUrl, targetUrl, isPopup, popupRect).getImplementation();
     }
 
     @NativeAccess
-    public JNIUlView onCreateInspectorView(UltralightView view, boolean isLocal, String inspectedUrl) {
-        return (JNIUlView) delegate.onCreateInspectorView(view, isLocal, inspectedUrl).getImplementation();
+    public JNIUlView onCreateInspectorView(JNIUlView view, boolean isLocal, String inspectedUrl) {
+        return (JNIUlView) delegate.onCreateInspectorView(new UltralightView(view), isLocal, inspectedUrl).getImplementation();
     }
 
     @NativeAccess
-    public void onRequestClose(UltralightView view) {
-        delegate.onRequestClose(view);
+    public void onRequestClose(JNIUlView view) {
+        delegate.onRequestClose(new UltralightView(view));
     }
 }

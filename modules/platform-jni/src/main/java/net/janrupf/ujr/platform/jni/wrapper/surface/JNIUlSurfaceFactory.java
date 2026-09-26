@@ -11,6 +11,15 @@ public class JNIUlSurfaceFactory {
         this.delegate = delegate;
     }
 
+    /**
+     * Retrieves the Java object this wrapper forwards to.
+     *
+     * @return the delegate
+     */
+    public UltralightSurfaceFactory getDelegate() {
+        return delegate;
+    }
+
     @NativeAccess
     public JNIUlSurface createSurface(long width, long height) {
         return new JNIUlSurface(delegate.createSurface(width, height));

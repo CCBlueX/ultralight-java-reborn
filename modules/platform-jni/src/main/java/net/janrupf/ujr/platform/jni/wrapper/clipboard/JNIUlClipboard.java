@@ -10,6 +10,15 @@ public class JNIUlClipboard {
         this.delegate = delegate;
     }
 
+    /**
+     * Retrieves the Java object this wrapper forwards to.
+     *
+     * @return the delegate
+     */
+    public UltralightClipboard getDelegate() {
+        return delegate;
+    }
+
     @NativeAccess
     public void clear() {
         delegate.clear();

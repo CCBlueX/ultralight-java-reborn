@@ -13,6 +13,15 @@ public class JNIUlFilesystem {
         this.delegate = delegate;
     }
 
+    /**
+     * Retrieves the Java object this wrapper forwards to.
+     *
+     * @return the delegate
+     */
+    public UltralightFilesystem getDelegate() {
+        return delegate;
+    }
+
     @NativeAccess
     public boolean fileExists(String path) {
         return delegate.fileExists(path);
