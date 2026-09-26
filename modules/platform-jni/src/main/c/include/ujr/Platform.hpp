@@ -6,6 +6,7 @@
 #include <Ultralight/platform/Platform.h>
 
 #include "ujr/support/GC.hpp"
+#include "ujr/wrapper/gpu/GPUDriver.hpp"
 
 namespace ujr {
     class Platform {
@@ -21,6 +22,7 @@ namespace ujr {
         ultralight::FileSystem *filesystem;
         ultralight::Clipboard *clipboard;
         ultralight::SurfaceFactory *surface_factory;
+        GPUDriver *gpu_driver;
 
         explicit PlatformCollector();
 

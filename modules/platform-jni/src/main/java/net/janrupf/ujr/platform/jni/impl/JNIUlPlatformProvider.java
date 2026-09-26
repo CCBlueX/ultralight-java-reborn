@@ -4,6 +4,8 @@ import net.janrupf.ujr.api.bitmap.UlBitmapFormat;
 import net.janrupf.ujr.api.config.UlConfig;
 import net.janrupf.ujr.api.config.UlFaceWinding;
 import net.janrupf.ujr.api.config.UlEffectQuality;
+import net.janrupf.ujr.api.gpu.UlRenderTarget;
+import net.janrupf.ujr.api.math.FloatRect;
 import net.janrupf.ujr.api.config.UlFontHinting;
 import net.janrupf.ujr.api.config.UlViewConfig;
 import net.janrupf.ujr.api.cursor.UlCursor;
@@ -29,6 +31,8 @@ import net.janrupf.ujr.platform.jni.ffi.NativeAccessOther;
         UlFaceWinding.class,
         UlFontHinting.class,
         UlEffectQuality.class,
+        UlRenderTarget.class,
+        FloatRect.class,
         UltralightLogLevel.class,
 
         // We also need access to event classes

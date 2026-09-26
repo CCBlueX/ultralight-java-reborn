@@ -81,6 +81,13 @@ Ultralight 1.3's `libWebCore.so` requires an executable stack, which glibc 2.41 
 
 Ultralight 1.4 needs `UltralightRenderer.refreshDisplay(0)` before every `render()` for animations and scrolling.
 
+## GPU rendering
+
+To render on the GPU, implement `UltralightGPUDriver` with your graphics API and pass it to
+`UltralightPlatform.setGPUDriver` before creating the renderer. Views created with `accelerated(true)` then draw
+through the driver during `render()`, and `UltralightView.renderTarget()` tells which texture holds the result. The
+buffers the driver receives point into Ultralight's memory and are only valid during the call.
+
 ## Building
 
 The build downloads the Ultralight SDK it targets from Ultralight. To build against another copy, pass the archive

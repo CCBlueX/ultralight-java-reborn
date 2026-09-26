@@ -6,6 +6,7 @@ import net.janrupf.ujr.api.event.UlScrollEvent;
 import net.janrupf.ujr.api.javascript.JavaScriptException;
 import net.janrupf.ujr.api.listener.UltralightLoadListener;
 import net.janrupf.ujr.api.listener.UltralightViewListener;
+import net.janrupf.ujr.api.gpu.UlRenderTarget;
 import net.janrupf.ujr.api.surface.UltralightSurface;
 
 public interface UlView {
@@ -30,6 +31,8 @@ public interface UlView {
     // TODO: RenderTarget
 
     UltralightSurface surface();
+
+    UlRenderTarget renderTarget();
 
     void loadHTML(String html, String url, boolean addToHistory);
 
