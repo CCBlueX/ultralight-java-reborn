@@ -2,14 +2,11 @@
 # Set up 3rdparty dependencies #
 ################################
 
-# The Ultralight SDK, either as its .7z archive or an extracted directory. Without it, the pinned build below is
+# The Ultralight SDK, either as its .7z archive or an extracted directory. Without it, the version below is
 # downloaded.
 set(ULTRALIGHT_SDK "$ENV{ULTRALIGHT_SDK}" CACHE FILEPATH "Ultralight SDK archive (.7z) or extracted directory")
 
-# c909371f1047810ad7598745025b646d42635645
-#
-# https://github.com/ultralight-ux/Ultralight/commit/c909371f1047810ad7598745025b646d42635645
-set(ULTRALIGHT_VERSION "c909371")
+set(ULTRALIGHT_VERSION "1.4.0")
 
 # Set the architecture information for ultralight
 set(ULTRALIGHT_ARCH "" CACHE STRING "Override the Ultralight architecture (x64 or arm64)")
@@ -26,25 +23,29 @@ if (NOT ULTRALIGHT_ARCH)
     elseif (ULTRALIGHT_PROCESSOR MATCHES "^(aarch64|arm64)$")
         set(ULTRALIGHT_ARCH "arm64")
     else ()
-        message(FATAL_ERROR "Unsupported processor ${ULTRALIGHT_PROCESSOR}")
+        message(FATAL_ERROR "Unsupported processor ${ULTRALIGHT_PROCESSOR}, Ultralight only supports x64 and arm64")
     endif ()
 endif ()
 
-# Set the OS information for ultralight
+# Set the OS information for ultralight, ULTRALIGHT_PLATFORM is the name Ultralight's download API uses
 if (WIN32)
     set(ULTRALIGHT_OS_NAME "win")
+    set(ULTRALIGHT_PLATFORM "windows")
     set(ULTRALIGHT_LINK_DIRECTORY "lib")
 elseif (APPLE)
     set(ULTRALIGHT_OS_NAME "mac")
+    set(ULTRALIGHT_PLATFORM "macos")
     set(ULTRALIGHT_LINK_DIRECTORY "bin")
 elseif (UNIX)
     set(ULTRALIGHT_OS_NAME "linux")
+    set(ULTRALIGHT_PLATFORM "linux")
     set(ULTRALIGHT_LINK_DIRECTORY "bin")
 else ()
     message(FATAL_ERROR "Unsupported operating system")
 endif ()
 
 set(ULTRALIGHT_IDENT "${ULTRALIGHT_OS_NAME}-${ULTRALIGHT_ARCH}")
+set(ULTRALIGHT_PLATFORM "${ULTRALIGHT_PLATFORM}-${ULTRALIGHT_ARCH}")
 
 if (IS_DIRECTORY "${ULTRALIGHT_SDK}")
     set(ULTRALIGHT_DIR "${ULTRALIGHT_SDK}")
@@ -70,7 +71,7 @@ else ()
         if (NOT ULTRALIGHT_ARCHIVE)
             set(ULTRALIGHT_ARCHIVE "${CMAKE_CURRENT_BINARY_DIR}/ultralight-${ULTRALIGHT_IDENT}.7z")
             file(DOWNLOAD
-                    "https://ultralight-sdk.sfo2.cdn.digitaloceanspaces.com/ultralight-sdk-${ULTRALIGHT_VERSION}-${ULTRALIGHT_IDENT}.7z"
+                    "https://ultralig.ht/api/v1/sdk/download?platform=${ULTRALIGHT_PLATFORM}&version=${ULTRALIGHT_VERSION}"
                     "${ULTRALIGHT_ARCHIVE}"
                     STATUS ULTRALIGHT_DOWNLOAD_STATUS
                     LOG ULTRALIGHT_DOWNLOAD_LOG
@@ -79,7 +80,7 @@ else ()
             list(GET ULTRALIGHT_DOWNLOAD_STATUS 0 ULTRALIGHT_DOWNLOAD_ERROR_CODE)
             list(GET ULTRALIGHT_DOWNLOAD_STATUS 1 ULTRALIGHT_DOWNLOAD_ERROR_MESSAGE)
             if (NOT ULTRALIGHT_DOWNLOAD_ERROR_CODE EQUAL 0)
-                message(FATAL_ERROR "Failed to download Ultralight for ${ULTRALIGHT_IDENT}: "
+                message(FATAL_ERROR "Failed to download Ultralight ${ULTRALIGHT_VERSION} for ${ULTRALIGHT_PLATFORM}: "
                         "${ULTRALIGHT_DOWNLOAD_ERROR_MESSAGE}\n\n${ULTRALIGHT_DOWNLOAD_LOG}")
             endif ()
         endif ()

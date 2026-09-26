@@ -198,17 +198,16 @@ namespace ujr {
         native_access::JNIUlViewListener::ON_CHANGE_CURSOR.invoke(env, j_listener, j_view, j_cursor);
     }
 
-    void ViewListener::OnAddConsoleMessage(
-        ultralight::View *caller,
-        ultralight::MessageSource source,
-        ultralight::MessageLevel level,
-        const ultralight::String &message,
-        uint32_t line_number,
-        uint32_t column_number,
-        const ultralight::String &source_id
-    ) {
+    void ViewListener::OnAddConsoleMessage(ultralight::View *caller, const ultralight::ConsoleMessage &console_message) {
         using native_access::UlMessageLevel;
         using native_access::UlMessageSource;
+
+        auto source = console_message.source();
+        auto level = console_message.level();
+        auto message = console_message.message();
+        auto line_number = console_message.line_number();
+        auto column_number = console_message.column_number();
+        auto source_id = console_message.source_id();
 
         auto env = JniEnv::require_existing_from_thread();
 
@@ -247,6 +246,24 @@ namespace ujr {
                 break;
             case ultralight::kMessageSource_ContentBlocker:
                 j_source = UlMessageSource::CONTENT_BLOCKER.get(env);
+                break;
+            case ultralight::kMessageSource_Media:
+                j_source = UlMessageSource::MEDIA.get(env);
+                break;
+            case ultralight::kMessageSource_MediaSource:
+                j_source = UlMessageSource::MEDIA_SOURCE.get(env);
+                break;
+            case ultralight::kMessageSource_WebRTC:
+                j_source = UlMessageSource::WEBRTC.get(env);
+                break;
+            case ultralight::kMessageSource_ITPDebug:
+                j_source = UlMessageSource::ITP_DEBUG.get(env);
+                break;
+            case ultralight::kMessageSource_PrivateClickMeasurement:
+                j_source = UlMessageSource::PRIVATE_CLICK_MEASUREMENT.get(env);
+                break;
+            case ultralight::kMessageSource_PaymentRequest:
+                j_source = UlMessageSource::PAYMENT_REQUEST.get(env);
                 break;
             case ultralight::kMessageSource_Other:
                 j_source = UlMessageSource::OTHER.get(env);

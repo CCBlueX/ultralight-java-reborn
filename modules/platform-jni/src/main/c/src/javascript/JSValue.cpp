@@ -219,6 +219,12 @@ Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJSCJSValue_nativeGetTypedAr
             case kJSTypedArrayTypeFloat64Array:
                 j_type = JSTypedArrayType::FLOAT64_ARRAY.get(env);
                 break;
+            case kJSTypedArrayTypeBigInt64Array:
+                j_type = JSTypedArrayType::BIGINT64_ARRAY.get(env);
+                break;
+            case kJSTypedArrayTypeBigUint64Array:
+                j_type = JSTypedArrayType::BIGUINT64_ARRAY.get(env);
+                break;
             case kJSTypedArrayTypeArrayBuffer:
                 j_type = JSTypedArrayType::ARRAY_BUFFER.get(env);
                 break;

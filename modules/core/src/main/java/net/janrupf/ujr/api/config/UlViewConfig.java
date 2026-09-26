@@ -69,10 +69,19 @@ public class UlViewConfig {
     public String fontFamilySansSerif = "Arial";
 
     /**
-     * Default user-agent string to use.
+     * The id of the display the view is on, see UltralightRenderer#refreshDisplay.
      */
-    public String userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-            "AppleWebKit/605.1.15 (KHTML, like Gecko) " +
-            "Ultralight/1.3.0 Version/13.0.3 Safari/605.1.15 " +
-            "UltralightJava/0.0.1";
+    public int displayId = 0;
+
+    /**
+     * Whether to render the view with the compositor.
+     */
+    public boolean enableCompositor = false;
+
+    /**
+     * The user-agent string to use, or null, to use the one of Ultralight.
+     * <p>
+     * Changing the user-agent requires Ultralight Pro.
+     */
+    public String userAgent = null;
 }

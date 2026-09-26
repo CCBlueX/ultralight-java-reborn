@@ -1,4 +1,5 @@
 #include "net_janrupf_ujr_api_config_UlConfig_native_access.hpp"
+#include "net_janrupf_ujr_api_config_UlEffectQuality_native_access.hpp"
 #include "net_janrupf_ujr_api_config_UlFaceWinding_native_access.hpp"
 #include "net_janrupf_ujr_api_config_UlFontHinting_native_access.hpp"
 #include "net_janrupf_ujr_platform_jni_impl_JNIUlPlatform.h"
@@ -29,6 +30,7 @@ Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeSetConfig(JNIEnv *env
         using ujr::native_access::UlConfig;
         using ujr::native_access::UlFaceWinding;
         using ujr::native_access::UlFontHinting;
+        using ujr::native_access::UlEffectQuality;
         using ujr::native_access::JNIUlPlatform;
 
         // Check that the config object is not null
@@ -80,6 +82,18 @@ Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeSetConfig(JNIEnv *env
         native_config.num_renderer_threads = static_cast<uint32_t>(UlConfig::NUM_RENDERER_THREADS.get(env, config));
         native_config.max_update_time = UlConfig::MAX_UPDATE_TIME.get(env, config);
         native_config.bitmap_alignment = static_cast<uint32_t>(UlConfig::BITMAP_ALIGNMENT.get(env, config));
+
+        auto effect_quality
+            = UlConfig::EFFECT_QUALITY.get(env, config).require_non_null_argument("config.effectQuality");
+        if (effect_quality == UlEffectQuality::LOW.get(env)) {
+            native_config.effect_quality = ultralight::EffectQuality::Low;
+        } else if (effect_quality == UlEffectQuality::MEDIUM.get(env)) {
+            native_config.effect_quality = ultralight::EffectQuality::Medium;
+        } else if (effect_quality == UlEffectQuality::HIGH.get(env)) {
+            native_config.effect_quality = ultralight::EffectQuality::High;
+        } else {
+            throw std::runtime_error("Unexpected effect quality value");
+        }
 
         reinterpret_cast<ultralight::Platform *>(JNIUlPlatform::HANDLE.get(env, self))->set_config(native_config);
     });
