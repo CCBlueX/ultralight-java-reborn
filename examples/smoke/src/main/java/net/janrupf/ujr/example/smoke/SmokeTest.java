@@ -134,6 +134,7 @@ public final class SmokeTest {
 
     private static void frame(UltralightRenderer renderer) throws InterruptedException {
         renderer.update();
+        renderer.refreshDisplay(0);
         renderer.render();
         Thread.sleep(10);
     }

@@ -13,8 +13,12 @@ jobs:
         include:
           - ident: linux-x64
             runner: ubuntu-22.04
+          - ident: linux-arm64
+            runner: ubuntu-22.04-arm
           - ident: mac-x64
             runner: macos-15-intel
+          - ident: mac-arm64
+            runner: macos-15
           - ident: win-x64
             runner: windows-2022
     with:
@@ -31,3 +35,42 @@ jobs:
     secrets:
       MAVEN_TOKEN_NAME: ${{ secrets.MAVEN_TOKEN_NAME }}
       MAVEN_TOKEN_SECRET: ${{ secrets.MAVEN_TOKEN_SECRET }}
+
+  runtime:
+    name: Ultralight runtime for ${{ matrix.ident }}
+    needs: publish
+    strategy:
+      fail-fast: false
+      matrix:
+        ident: [ linux-x64, linux-arm64, mac-x64, mac-arm64, win-x64 ]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      ULTRALIGHT_VERSION: 1.4.0
+      RESOURCE_API: https://api.liquidbounce.net/api/v3/resource
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Package and upload the runtime
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          # Applications ship the runtime to their users, LiquidBounce downloads it from here
+          url="$RESOURCE_API/ultralight/$ULTRALIGHT_VERSION/${{ matrix.ident }}"
+
+          # Uploads can't be replaced, and tarballs packed elsewhere differ byte for byte, so an existing one stays
+          if curl -fsS -o /dev/null "$url/checksum"; then
+            echo "The runtime for $ULTRALIGHT_VERSION is already uploaded"
+            exit 0
+          fi
+
+          if [ -z "$API_TOKEN" ]; then
+            echo "API_TOKEN is not set, the runtime can't be uploaded"
+            exit 1
+          fi
+
+          .github/scripts/download-ultralight.sh ultralight-sdk ${{ matrix.ident }} sdk.7z
+          .github/scripts/package-runtime.sh sdk.7z runtime.tar.gz
+          curl -fsS -X POST -H "Authorization: Bearer $API_TOKEN" -H "Content-Type: application/gzip" \
+            --data-binary @runtime.tar.gz "$url"

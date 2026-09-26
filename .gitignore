@@ -24,3 +24,6 @@ bin/
 
 .DS_Store
 hs_err_pid*
+
+# Ultralight SDK and runtime downloaded by CI
+.ultralight/
