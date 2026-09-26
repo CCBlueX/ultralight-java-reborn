@@ -2,14 +2,12 @@
 # Set up 3rdparty dependencies #
 ################################
 
-# The Ultralight SDK, either as its .7z archive or an extracted directory. Without it, the pinned build below is
-# downloaded.
+# The Ultralight SDK can't be downloaded without an account, so it has to be supplied, either as the
+# .7z archive or as an already extracted directory
 set(ULTRALIGHT_SDK "$ENV{ULTRALIGHT_SDK}" CACHE FILEPATH "Ultralight SDK archive (.7z) or extracted directory")
-
-# c909371f1047810ad7598745025b646d42635645
-#
-# https://github.com/ultralight-ux/Ultralight/commit/c909371f1047810ad7598745025b646d42635645
-set(ULTRALIGHT_VERSION "c909371")
+if (NOT ULTRALIGHT_SDK)
+    message(FATAL_ERROR "No Ultralight SDK given, pass -DULTRALIGHT_SDK=<archive or directory> or set ULTRALIGHT_SDK")
+endif ()
 
 # Set the architecture information for ultralight
 set(ULTRALIGHT_ARCH "" CACHE STRING "Override the Ultralight architecture (x64 or arm64)")
@@ -26,7 +24,7 @@ if (NOT ULTRALIGHT_ARCH)
     elseif (ULTRALIGHT_PROCESSOR MATCHES "^(aarch64|arm64)$")
         set(ULTRALIGHT_ARCH "arm64")
     else ()
-        message(FATAL_ERROR "Unsupported processor ${ULTRALIGHT_PROCESSOR}")
+        message(FATAL_ERROR "Unsupported processor ${ULTRALIGHT_PROCESSOR}, Ultralight only supports x64 and arm64")
     endif ()
 endif ()
 
@@ -49,48 +47,38 @@ set(ULTRALIGHT_IDENT "${ULTRALIGHT_OS_NAME}-${ULTRALIGHT_ARCH}")
 if (IS_DIRECTORY "${ULTRALIGHT_SDK}")
     set(ULTRALIGHT_DIR "${ULTRALIGHT_SDK}")
 else ()
+    if (NOT ULTRALIGHT_SDK MATCHES "${ULTRALIGHT_IDENT}")
+        message(WARNING "The Ultralight SDK ${ULTRALIGHT_SDK} doesn't look like it is for ${ULTRALIGHT_IDENT}")
+    endif ()
+
+    # Extract the archive, again whenever it changes
     set(ULTRALIGHT_DIR "${CMAKE_CURRENT_BINARY_DIR}/ultralight-${ULTRALIGHT_IDENT}")
     set(ULTRALIGHT_VERSION_FILE "${ULTRALIGHT_DIR}/.version")
-
-    if (ULTRALIGHT_SDK)
-        file(SHA256 "${ULTRALIGHT_SDK}" ULTRALIGHT_SDK_VERSION)
-    else ()
-        set(ULTRALIGHT_SDK_VERSION "${ULTRALIGHT_VERSION}")
-    endif ()
+    file(SHA256 "${ULTRALIGHT_SDK}" ULTRALIGHT_SDK_HASH)
 
     if (EXISTS "${ULTRALIGHT_VERSION_FILE}")
-        file(READ "${ULTRALIGHT_VERSION_FILE}" ULTRALIGHT_INSTALLED_VERSION)
+        file(READ "${ULTRALIGHT_VERSION_FILE}" ULTRALIGHT_INSTALLED_HASH)
     endif ()
 
-    # Extract the SDK, again whenever it changes
-    if (NOT "${ULTRALIGHT_SDK_VERSION}" STREQUAL "${ULTRALIGHT_INSTALLED_VERSION}")
+    if (NOT "${ULTRALIGHT_SDK_HASH}" STREQUAL "${ULTRALIGHT_INSTALLED_HASH}")
         file(REMOVE_RECURSE "${ULTRALIGHT_DIR}")
-
-        set(ULTRALIGHT_ARCHIVE "${ULTRALIGHT_SDK}")
-        if (NOT ULTRALIGHT_ARCHIVE)
-            set(ULTRALIGHT_ARCHIVE "${CMAKE_CURRENT_BINARY_DIR}/ultralight-${ULTRALIGHT_IDENT}.7z")
-            file(DOWNLOAD
-                    "https://ultralight-sdk.sfo2.cdn.digitaloceanspaces.com/ultralight-sdk-${ULTRALIGHT_VERSION}-${ULTRALIGHT_IDENT}.7z"
-                    "${ULTRALIGHT_ARCHIVE}"
-                    STATUS ULTRALIGHT_DOWNLOAD_STATUS
-                    LOG ULTRALIGHT_DOWNLOAD_LOG
-                    )
-
-            list(GET ULTRALIGHT_DOWNLOAD_STATUS 0 ULTRALIGHT_DOWNLOAD_ERROR_CODE)
-            list(GET ULTRALIGHT_DOWNLOAD_STATUS 1 ULTRALIGHT_DOWNLOAD_ERROR_MESSAGE)
-            if (NOT ULTRALIGHT_DOWNLOAD_ERROR_CODE EQUAL 0)
-                message(FATAL_ERROR "Failed to download Ultralight for ${ULTRALIGHT_IDENT}: "
-                        "${ULTRALIGHT_DOWNLOAD_ERROR_MESSAGE}\n\n${ULTRALIGHT_DOWNLOAD_LOG}")
-            endif ()
-        endif ()
-
-        file(ARCHIVE_EXTRACT INPUT "${ULTRALIGHT_ARCHIVE}" DESTINATION "${ULTRALIGHT_DIR}")
-        file(WRITE "${ULTRALIGHT_VERSION_FILE}" "${ULTRALIGHT_SDK_VERSION}")
+        file(ARCHIVE_EXTRACT INPUT "${ULTRALIGHT_SDK}" DESTINATION "${ULTRALIGHT_DIR}")
+        file(WRITE "${ULTRALIGHT_VERSION_FILE}" "${ULTRALIGHT_SDK_HASH}")
     endif ()
 endif ()
 
+# Archives may wrap the SDK in a single top-level folder
 if (NOT EXISTS "${ULTRALIGHT_DIR}/include/Ultralight/Ultralight.h")
-    message(FATAL_ERROR "${ULTRALIGHT_DIR} is not an Ultralight SDK")
+    file(GLOB ULTRALIGHT_SDK_CHILDREN LIST_DIRECTORIES true "${ULTRALIGHT_DIR}/*")
+    foreach (child IN LISTS ULTRALIGHT_SDK_CHILDREN)
+        if (EXISTS "${child}/include/Ultralight/Ultralight.h")
+            set(ULTRALIGHT_DIR "${child}")
+        endif ()
+    endforeach ()
+endif ()
+
+if (NOT EXISTS "${ULTRALIGHT_DIR}/include/Ultralight/Ultralight.h")
+    message(FATAL_ERROR "${ULTRALIGHT_SDK} is not an Ultralight SDK")
 endif ()
 
 message(STATUS "Using the Ultralight SDK in ${ULTRALIGHT_DIR} for ${ULTRALIGHT_IDENT}")

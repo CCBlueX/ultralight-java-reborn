@@ -51,6 +51,13 @@ public class JNIUlRenderer implements UlRenderer {
     private native void nativeUpdate();
 
     @Override
+    public void refreshDisplay(int displayId) {
+        nativeRefreshDisplay(displayId);
+    }
+
+    private native void nativeRefreshDisplay(int displayId);
+
+    @Override
     public void render() {
         nativeRender();
     }

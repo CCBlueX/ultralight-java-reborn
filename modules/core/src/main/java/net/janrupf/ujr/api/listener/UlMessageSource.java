@@ -16,5 +16,11 @@ public enum UlMessageSource {
     CSS,
     SECURITY,
     CONTENT_BLOCKER,
-    OTHER
+    OTHER,
+    MEDIA,
+    MEDIA_SOURCE,
+    WEBRTC,
+    ITP_DEBUG,
+    PRIVATE_CLICK_MEASUREMENT,
+    PAYMENT_REQUEST
 }

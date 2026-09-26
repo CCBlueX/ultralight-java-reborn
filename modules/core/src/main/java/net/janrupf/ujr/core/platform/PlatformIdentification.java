@@ -104,6 +104,9 @@ public class PlatformIdentification {
                 return "x64";
             case "i386":
                 return "x86";
+            case "aarch64":
+            case "arm64":
+                return "arm64";
             default:
                 return input;
         }

@@ -144,6 +144,32 @@ public class UltralightViewConfigBuilder extends UlViewConfig {
     }
 
     /**
+     * Sets the id of the display the view is on.
+     * <p>
+     * See {@link UlViewConfig#displayId} for more information.
+     *
+     * @param displayId the display id to use
+     * @return this
+     */
+    public UltralightViewConfigBuilder displayId(int displayId) {
+        this.displayId = displayId;
+        return this;
+    }
+
+    /**
+     * Sets whether to render the view with the compositor.
+     * <p>
+     * See {@link UlViewConfig#enableCompositor} for more information.
+     *
+     * @param enableCompositor whether to enable the compositor
+     * @return this
+     */
+    public UltralightViewConfigBuilder enableCompositor(boolean enableCompositor) {
+        this.enableCompositor = enableCompositor;
+        return this;
+    }
+
+    /**
      * Sets the user agent.
      * <p>
      * See {@link UlViewConfig#userAgent} for more information.

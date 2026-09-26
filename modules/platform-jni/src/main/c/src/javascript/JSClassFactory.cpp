@@ -32,13 +32,15 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
 
         JSClassDefinition js_definition = kJSClassDefinitionEmpty;
         js_definition.className = name.c_str();
-        js_definition.version = 1000;
         js_definition.attributes
             = ujr::JSUtil::property_attributes_to_js(env, JNIJSCClassDefinition::ATTRIBUTES.get(env, definition));
+
+        shared_data->class_name = name;
 
         auto j_parent_class = JNIJSCClassDefinition::PARENT_CLASS.get(env, definition);
         if (j_parent_class.is_valid()) {
             js_definition.parentClass = reinterpret_cast<JSClassRef>(JNIJSCJSClass::HANDLE.get(env, j_parent_class));
+            shared_data->parent = ujr::JSClassJavaSharedData::of_class(js_definition.parentClass);
         }
 
         auto j_static_values = JNIJSCClassDefinition::STATIC_VALUES.get(env, definition);
@@ -46,8 +48,8 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             jsize static_value_count = env->GetArrayLength(j_static_values);
             shared_data->static_function_callbacks.reserve(static_value_count);
 
-            auto *static_values = new JSStaticValueEx[static_value_count + 1];
-            std::memset(&static_values[static_value_count], 0, sizeof(JSStaticValueEx));
+            auto *static_values = new JSStaticValue[static_value_count + 1];
+            std::memset(&static_values[static_value_count], 0, sizeof(JSStaticValue));
 
             for (jsize i = 0; i < static_value_count; i++) {
                 auto j_static_value = env.wrap_argument(env->GetObjectArrayElement(j_static_values, i));
@@ -65,13 +67,13 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
 
                 static_values[i].name = inserted.first->first.c_str();
                 static_values[i].attributes = ujr::JSUtil::property_attributes_to_js(env, value_attributes);
-                static_values[i].getPropertyEx
+                static_values[i].getProperty
                     = value_getter.is_valid() ? &ujr::JSJavaClassCallbacks::get_static_property : nullptr;
-                static_values[i].setPropertyEx
+                static_values[i].setProperty
                     = value_setter.is_valid() ? &ujr::JSJavaClassCallbacks::set_static_property : nullptr;
             }
 
-            js_definition.staticValuesEx = static_values;
+            js_definition.staticValues = static_values;
         }
 
         auto j_static_functions = JNIJSCClassDefinition::STATIC_FUNCTIONS.get(env, definition);
@@ -79,8 +81,8 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             jsize static_function_count = env->GetArrayLength(j_static_functions);
             shared_data->static_function_callbacks.reserve(static_function_count);
 
-            auto *static_functions = new JSStaticFunctionEx[static_function_count + 1];
-            std::memset(&static_functions[static_function_count], 0, sizeof(JSStaticFunctionEx));
+            auto *static_functions = new JSStaticFunction[static_function_count + 1];
+            std::memset(&static_functions[static_function_count], 0, sizeof(JSStaticFunction));
 
             for (jsize i = 0; i < static_function_count; i++) {
                 auto j_static_function = env.wrap_argument(env->GetObjectArrayElement(j_static_functions, i));
@@ -97,17 +99,17 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
 
                 static_functions[i].name = inserted.first->first.c_str();
                 static_functions[i].attributes = ujr::JSUtil::property_attributes_to_js(env, function_attributes);
-                static_functions[i].callAsFunctionEx = &ujr::JSJavaClassCallbacks::call_as_function;
+                static_functions[i].callAsFunction = &ujr::JSJavaClassCallbacks::call_static_function;
             }
 
-            js_definition.staticFunctionsEx = static_functions;
+            js_definition.staticFunctions = static_functions;
         }
 
         {
             auto j_initialize = JNIJSCClassDefinition::INITIALIZE.get(env, definition);
             if (j_initialize.is_valid()) {
                 shared_data->initialize_callback = j_initialize.clone_as_global();
-                js_definition.initializeEx = &ujr::JSJavaClassCallbacks::initialize;
+                js_definition.initialize = &ujr::JSJavaClassCallbacks::initialize;
             }
         }
 
@@ -115,7 +117,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_finalize = JNIJSCClassDefinition::FINALIZE.get(env, definition);
             if (j_finalize.is_valid()) {
                 shared_data->finalize_callback = j_finalize.clone_as_global();
-                js_definition.finalizeEx = &ujr::JSJavaClassCallbacks::finalize;
+                js_definition.finalize = &ujr::JSJavaClassCallbacks::finalize;
             }
         }
 
@@ -123,7 +125,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_has_property = JNIJSCClassDefinition::HAS_PROPERTY.get(env, definition);
             if (j_has_property.is_valid()) {
                 shared_data->has_property_callback = j_has_property.clone_as_global();
-                js_definition.hasPropertyEx = &ujr::JSJavaClassCallbacks::has_property;
+                js_definition.hasProperty = &ujr::JSJavaClassCallbacks::has_property;
             }
         }
 
@@ -131,7 +133,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_get_property = JNIJSCClassDefinition::GET_PROPERTY.get(env, definition);
             if (j_get_property.is_valid()) {
                 shared_data->get_property_callback = j_get_property.clone_as_global();
-                js_definition.getPropertyEx = &ujr::JSJavaClassCallbacks::get_property;
+                js_definition.getProperty = &ujr::JSJavaClassCallbacks::get_property;
             }
         }
 
@@ -139,7 +141,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_set_property = JNIJSCClassDefinition::SET_PROPERTY.get(env, definition);
             if (j_set_property.is_valid()) {
                 shared_data->set_property_callback = j_set_property.clone_as_global();
-                js_definition.setPropertyEx = &ujr::JSJavaClassCallbacks::set_property;
+                js_definition.setProperty = &ujr::JSJavaClassCallbacks::set_property;
             }
         }
 
@@ -147,7 +149,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_delete_property = JNIJSCClassDefinition::DELETE_PROPERTY.get(env, definition);
             if (j_delete_property.is_valid()) {
                 shared_data->delete_property_callback = j_delete_property.clone_as_global();
-                js_definition.deletePropertyEx = &ujr::JSJavaClassCallbacks::delete_property;
+                js_definition.deleteProperty = &ujr::JSJavaClassCallbacks::delete_property;
             }
         }
 
@@ -155,7 +157,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_get_property_names = JNIJSCClassDefinition::GET_PROPERTY_NAMES.get(env, definition);
             if (j_get_property_names.is_valid()) {
                 shared_data->get_property_names_callback = j_get_property_names.clone_as_global();
-                js_definition.getPropertyNamesEx = &ujr::JSJavaClassCallbacks::get_property_names;
+                js_definition.getPropertyNames = &ujr::JSJavaClassCallbacks::get_property_names;
             }
         }
 
@@ -163,7 +165,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_call_as_function = JNIJSCClassDefinition::CALL_AS_FUNCTION.get(env, definition);
             if (j_call_as_function.is_valid()) {
                 shared_data->call_as_function_callback = j_call_as_function.clone_as_global();
-                js_definition.callAsFunctionEx = &ujr::JSJavaClassCallbacks::call_as_function;
+                js_definition.callAsFunction = &ujr::JSJavaClassCallbacks::call_as_function;
             }
         }
 
@@ -171,7 +173,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_call_as_constructor = JNIJSCClassDefinition::CALL_AS_CONSTRUCTOR.get(env, definition);
             if (j_call_as_constructor.is_valid()) {
                 shared_data->call_as_constructor_callback = j_call_as_constructor.clone_as_global();
-                js_definition.callAsConstructorEx = &ujr::JSJavaClassCallbacks::call_as_constructor;
+                js_definition.callAsConstructor = &ujr::JSJavaClassCallbacks::call_as_constructor;
             }
         }
 
@@ -179,7 +181,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_has_instance = JNIJSCClassDefinition::HAS_INSTANCE.get(env, definition);
             if (j_has_instance.is_valid()) {
                 shared_data->has_instance_callback = j_has_instance.clone_as_global();
-                js_definition.hasInstanceEx = &ujr::JSJavaClassCallbacks::has_instance;
+                js_definition.hasInstance = &ujr::JSJavaClassCallbacks::has_instance;
             }
         }
 
@@ -187,23 +189,23 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             auto j_convert_to_type = JNIJSCClassDefinition::CONVERT_TO_TYPE.get(env, definition);
             if (j_convert_to_type.is_valid()) {
                 shared_data->convert_to_type_callback = j_convert_to_type.clone_as_global();
-                js_definition.convertToTypeEx = &ujr::JSJavaClassCallbacks::convert_to_type;
+                js_definition.convertToType = &ujr::JSJavaClassCallbacks::convert_to_type;
             }
         }
-
-        js_definition.privateData = shared_data;
 
         // TODO: Memory leak! The shared data pointer can never be freed, because WebCore does not provide
         //      a finalizer for JSClassRef.
         JSClassRef js_class = JSClassCreate(&js_definition);
 
-        delete[] js_definition.staticValuesEx;
-        delete[] js_definition.staticFunctionsEx;
+        delete[] js_definition.staticValues;
+        delete[] js_definition.staticFunctions;
 
         if (!js_class) {
             delete shared_data;
             throw std::runtime_error("Class could not be created");
         }
+
+        ujr::JSClassJavaSharedData::register_class(js_class, shared_data);
 
         return ujr::JSClass::wrap(env, js_class).leak();
     });
