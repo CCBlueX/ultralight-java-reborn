@@ -21,8 +21,8 @@ public class BundledResources {
 
     private final Map<String, List<HashedResource>> bundled;
 
-    public BundledResources() {
-        this.bundled = loadBundledResources();
+    public BundledResources(ClassLoader loader) {
+        this.bundled = loadBundledResources(loader);
     }
 
     /**
@@ -65,13 +65,11 @@ public class BundledResources {
     /**
      * Reads the internal metadata file and returns a map of all bundled natives.
      *
+     * @param thisLoader the class loader to find the natives with
      * @return a map of all bundled natives
      */
-    private static Map<String, List<HashedResource>> loadBundledResources() {
+    private static Map<String, List<HashedResource>> loadBundledResources(ClassLoader thisLoader) {
         Map<String, List<HashedResource>> bundled = new HashMap<>();
-
-        // We use the class loader of this class to load the bundled resources
-        ClassLoader thisLoader = BundledResources.class.getClassLoader();
 
         Enumeration<URL> nativesMetadataFiles;
         try {

@@ -1,21 +1,14 @@
-name: CI
+name: Publish
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-  workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  release:
+    types: [ published ]
 
 jobs:
   natives:
     name: Natives for ${{ matrix.ident }}
     uses: ./.github/workflows/natives.yml
     strategy:
-      fail-fast: false
       matrix:
         include:
           - ident: linux-x64
@@ -28,7 +21,13 @@ jobs:
       ident: ${{ matrix.ident }}
       runner: ${{ matrix.runner }}
 
-  assemble:
-    name: Assemble
+  publish:
+    name: Publish
     needs: natives
     uses: ./.github/workflows/assemble.yml
+    with:
+      version: ${{ github.event.release.tag_name }}
+      publish: true
+    secrets:
+      MAVEN_TOKEN_NAME: ${{ secrets.MAVEN_TOKEN_NAME }}
+      MAVEN_TOKEN_SECRET: ${{ secrets.MAVEN_TOKEN_SECRET }}

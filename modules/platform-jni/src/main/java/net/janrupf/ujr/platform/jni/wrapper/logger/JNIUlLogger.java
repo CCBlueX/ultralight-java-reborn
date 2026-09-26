@@ -11,6 +11,15 @@ public class JNIUlLogger {
         this.delegate = delegate;
     }
 
+    /**
+     * Retrieves the Java object this wrapper forwards to.
+     *
+     * @return the delegate
+     */
+    public UltralightLogger getDelegate() {
+        return delegate;
+    }
+
     @NativeAccess
     public void logMessage(UltralightLogLevel logLevel, String message) {
         delegate.logMessage(logLevel, message);

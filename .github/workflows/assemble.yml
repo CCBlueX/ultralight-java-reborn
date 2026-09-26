@@ -1,0 +1,88 @@
+name: Assemble
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: ''
+      publish:
+        type: boolean
+        default: false
+    secrets:
+      MAVEN_TOKEN_NAME:
+        required: false
+      MAVEN_TOKEN_SECRET:
+        required: false
+
+jobs:
+  assemble:
+    name: Assemble
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      # Release tags are named v<version>
+      VERSION: ${{ inputs.version }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: natives-*
+          path: build/prebuilt-natives
+          merge-multiple: true
+
+      - name: Build
+        run: |
+          ./gradlew \
+            -Pujr.importPrebuiltNatives=true \
+            "-Pujr.prebuiltNativesDir=$PWD/build/prebuilt-natives" \
+            "-Pujr.version=${VERSION#v}" \
+            assemble
+
+      - name: Check that no Ultralight binaries are bundled
+        run: |
+          # The Ultralight license doesn't allow passing on its binaries, only our own library may be in the jars
+          if cat build/prebuilt-natives/*/ultralight-natives.dat | grep -E ' (lib)?(UltralightCore|WebCore|Ultralight|AppCore)\.(so|dylib|dll)'; then
+            echo "Ultralight binaries must not be bundled"
+            exit 1
+          fi
+
+      - name: Summarize the natives jars
+        run: |
+          echo '| Jar | SHA-256 |' >> "$GITHUB_STEP_SUMMARY"
+          echo '|---|---|' >> "$GITHUB_STEP_SUMMARY"
+          for jar in modules/platform-jni/build/libs/*-{linux,mac,win}-*.jar; do
+            echo "| $(basename "$jar") | $(sha256sum "$jar" | cut -d' ' -f1) |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jars
+          path: modules/*/build/libs/*.jar
+          retention-days: 7
+
+      - name: Publish
+        if: inputs.publish
+        env:
+          MAVEN_TOKEN_NAME: ${{ secrets.MAVEN_TOKEN_NAME }}
+          MAVEN_TOKEN_SECRET: ${{ secrets.MAVEN_TOKEN_SECRET }}
+        run: |
+          if [ -z "$MAVEN_TOKEN_NAME" ] || [ -z "$MAVEN_TOKEN_SECRET" ]; then
+            echo "The Maven credentials are not available"
+            exit 1
+          fi
+
+          ./gradlew \
+            -Pujr.importPrebuiltNatives=true \
+            "-Pujr.prebuiltNativesDir=$PWD/build/prebuilt-natives" \
+            "-Pujr.version=${VERSION#v}" \
+            publish

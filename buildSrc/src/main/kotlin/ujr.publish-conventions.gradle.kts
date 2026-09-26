@@ -1,34 +1,28 @@
 plugins {
     `maven-publish`
-    signing
 }
 
-val ossrhUser = System.getenv("UJR_OSSRH_USER")
-val pssrhPassword = System.getenv("UJR_OSSRH_PASSWORD")
+val mavenUser: String? = System.getenv("MAVEN_TOKEN_NAME")
+val mavenPassword: String? = System.getenv("MAVEN_TOKEN_SECRET")
 
 val isSnapshot = rootProject.version.toString().endsWith("-SNAPSHOT")
 
 publishing {
     repositories {
-        if (ossrhUser != null && pssrhPassword != null) {
+        if (mavenUser != null && mavenPassword != null) {
             maven {
-                name = "ossrh-ultralight-java-reborn"
-
-                if (isSnapshot) {
-                    url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-                } else {
-                    url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                }
+                name = "ccbluex"
+                url = uri(if (isSnapshot) "https://maven.ccbluex.net/snapshots" else "https://maven.ccbluex.net/releases")
 
                 credentials {
-                    username = ossrhUser
-                    password = pssrhPassword
+                    username = mavenUser
+                    password = mavenPassword
                 }
             }
         } else {
             maven {
-                name = "github-maven-ultralight-java-reborn"
-                url = uri("file://${rootProject.buildDir}/maven-repo")
+                name = "local"
+                url = uri(rootProject.layout.buildDirectory.dir("maven-repo"))
             }
         }
     }
@@ -38,7 +32,7 @@ publishing {
             from(components["java"])
 
             pom {
-                url.set("https://github.com/Janrupf/ultralight-java-reborn")
+                url.set("https://github.com/CCBlueX/ultralight-java-reborn")
 
                 licenses {
                     license {
@@ -53,24 +47,18 @@ publishing {
                         id.set("Janrupf")
                         email.set("business.janrupf@gmail.com")
                     }
+                    developer {
+                        id.set("CCBlueX")
+                        url.set("https://github.com/CCBlueX")
+                    }
                 }
 
                 scm {
-                    connection.set("scm:git:https://github.com/Janrupf/ultralight-java-reborn.git")
-                    developerConnection.set("scm:git:ssh://github.com/Janrupf/ultralight-java-reborn.git")
-                    url.set("https://github.com/Janrupf/ultralight-java-reborn")
+                    connection.set("scm:git:https://github.com/CCBlueX/ultralight-java-reborn.git")
+                    developerConnection.set("scm:git:ssh://github.com/CCBlueX/ultralight-java-reborn.git")
+                    url.set("https://github.com/CCBlueX/ultralight-java-reborn")
                 }
             }
         }
-    }
-}
-
-if (rootProject.properties["ujr.enableSigning"]?.toString()?.toBoolean() == true) {
-    signing {
-        val signingKey = System.getenv("UJR_SIGNING_KEY")
-        val signingPassword = System.getenv("UJR_SIGNING_PASSWORD")
-        useInMemoryPgpKeys(signingKey, signingPassword)
-
-        sign(publishing.publications["mavenJava"])
     }
 }

@@ -18,9 +18,9 @@ fun addModule(name: String) {
     }
 }
 
-addExample("glfw")
 addExample("javascript")
 addExample("png")
+addExample("smoke")
 
 addModule("core")
 addModule("native-ap")

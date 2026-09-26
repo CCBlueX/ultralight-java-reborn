@@ -135,6 +135,26 @@ Java_net_janrupf_ujr_platform_jni_impl_JNIUlBitmap_nativeLockPixels(JNIEnv *env,
     });
 }
 
+JNIEXPORT void JNICALL
+Java_net_janrupf_ujr_platform_jni_impl_JNIUlBitmap_nativeUnlockPixels(JNIEnv *env, jobject self, jbyteArray storage) {
+    ujr::jni_entry_guard(env, [&](auto env) {
+        using ujr::native_access::JNIUlBitmap;
+
+        auto *bitmap = reinterpret_cast<ultralight::Bitmap *>(JNIUlBitmap::HANDLE.get(env, self));
+
+        if (storage) {
+            // The pixels were handed out as a copy, so write them back
+            auto *pixels = reinterpret_cast<jbyte *>(JNIUlBitmap::LOCKED_PIXELS.get(env, self));
+            if (pixels) {
+                env->GetByteArrayRegion(storage, 0, static_cast<jsize>(bitmap->size()), pixels);
+                JNIUlBitmap::LOCKED_PIXELS.set(env, self, 0);
+            }
+        }
+
+        bitmap->UnlockPixels();
+    });
+}
+
 JNIEXPORT jboolean JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlBitmap_nativeIsEmpty(JNIEnv *env, jobject self) {
     return ujr::jni_entry_guard(env, [&](auto env) {
         using ujr::native_access::JNIUlBitmap;

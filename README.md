@@ -30,14 +30,14 @@ If you have any questions, feel free to join the [Ultralight Discord](https://ch
 
 # Using the library
 
-Snapshot builds are published to https://s01.oss.sonatype.org/content/repositories/snapshots.
+Releases are published to https://maven.ccbluex.net/releases.
 
 ## Gradle
 
 Add the repository:
 ```kotlin
 repositories {
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots")
+    maven("https://maven.ccbluex.net/releases")
 }
 ```
 
@@ -45,53 +45,50 @@ Add the dependencies:
 ```kotlin
 dependencies {
     // Java libraries, these are needed for compilation and runtime
-    implementation("net.janrupf.ultralight:ultralight-java-reborn-core:0.0.2-SNAPSHOT")
-    implementation("net.janrupf.ultralight:ultralight-java-reborn-platform-jni:0.0.2-SNAPSHOT")
+    implementation("net.ccbluex.ultralight:ultralight-java-reborn-core:0.1.0")
+    implementation("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.1.0")
 
-    // The native libraries, these are needed for runtime only (they contain no Java code)
-    runtimeOnly("net.janrupf.ultralight:ultralight-java-reborn-platform-jni:0.0.2-SNAPSHOT:linux-x64")
-    // or win-x64, mac-x64, or just add all 3 as dependencies
+    // The native library, needed at runtime only (it contains no Java code)
+    runtimeOnly("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.1.0:linux-x64")
+    // or win-x64, mac-x64
 }
 ```
 
-## Maven
+## The Ultralight runtime
 
-Add the repository:
-```xml
-<repositories>
-    <repository>
-        <id>sonatype-snapshots</id>
-        <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-    </repository>
-</repositories>
+The Ultralight license only allows applications to pass Ultralight on to their users, so the natives contain
+Ultralight Java Reborn's own library, not Ultralight itself. Ship the Ultralight runtime with your application:
+the `bin/` and `resources/` directories of the SDK. Then point Ultralight Java Reborn at it before loading:
+
+```java
+PlatformEnvironmentOptionContainer options = new PlatformEnvironmentOptionContainer();
+options.addOption(new PlatformEnvironmentOption<>(
+        JniPlatformOptions.class,
+        new JniPlatformOptions().ultralightDirectory(Paths.get("path/to/ultralight"))
+));
+
+PlatformEnvironment environment = PlatformEnvironment.load(options);
 ```
 
-Add the dependencies:
-```xml
-<dependencies>
-    <dependency>
-        <!-- Core library -->
-        <groupId>net.janrupf.ultralight</groupId>
-        <artifactId>ultralight-java-reborn-core</artifactId>
-        <version>0.0.2-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-        <!-- Platform JNI library -->
-        <groupId>net.janrupf.ultralight</groupId>
-        <artifactId>ultralight-java-reborn-platform-jni</artifactId>
-        <version>0.0.2-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-        <!-- Platform JNI natives -->
-        <groupId>net.janrupf.ultralight</groupId>
-        <artifactId>ultralight-java-reborn-platform-jni</artifactId>
-        <version>0.0.2-SNAPSHOT</version>
-        <classifier>linux-x64</classifier>
-        <scope>runtime</scope> <!-- Only required at runtime, contains no Java code -->
-        <!-- or win-x64, mac-x64, or just add all 3 as dependencies -->
-    </dependency>
-</dependencies>
+The `ujr.ultralightDirectory` system property and the `ULTRALIGHT_DIR` environment variable work as well.
+
+| Ultralight Java Reborn | Ultralight |
+|---|---|
+| 0.1.0 | 1.3 (`c909371`) |
+
+Ultralight 1.3's `libWebCore.so` requires an executable stack, which glibc 2.41 and newer refuse to load.
+
+## Building
+
+The build downloads the Ultralight SDK it targets. To build against another copy, pass the archive or an extracted
+SDK:
+
+```sh
+./gradlew -Pujr.ultralightSdk=path/to/ultralight-sdk-c909371-linux-x64.7z assemble
 ```
+
+To run the smoke test, also pass the runtime, for example the extracted SDK: `-Pujr.ultralightDirectory=path/to/sdk
+:examples:ultralight-java-reborn-example-smoke:run`.
 
 # Licensing
 

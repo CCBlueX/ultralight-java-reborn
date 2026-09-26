@@ -8,6 +8,7 @@ import net.janrupf.ujr.core.platform.abstraction.UlPlatform;
 import net.janrupf.ujr.api.config.UlConfig;
 import net.janrupf.ujr.core.platform.abstraction.UlRenderer;
 import net.janrupf.ujr.platform.jni.ffi.NativeAccess;
+import net.janrupf.ujr.platform.jni.wrapper.clipboard.JNIUlClipboard;
 import net.janrupf.ujr.platform.jni.wrapper.filesystem.JNIUlFilesystem;
 import net.janrupf.ujr.platform.jni.wrapper.logger.JNIUlLogger;
 import net.janrupf.ujr.platform.jni.wrapper.surface.JNIUlSurfaceFactory;
@@ -41,59 +42,79 @@ public class JNIUlPlatform implements UlPlatform {
 
     @Override
     public void setLogger(UltralightLogger logger) {
-        nativeSetLogger(new JNIUlLogger(logger));
+        nativeSetLogger(logger == null ? null : new JNIUlLogger(logger));
     }
 
     private native void nativeSetLogger(JNIUlLogger logger);
 
     @Override
     public UltralightLogger getLogger() {
-        return nativeGetLogger();
+        Object logger = nativeGetLogger();
+
+        // Our own wrappers are unwrapped, native implementations are returned as they are
+        return logger instanceof JNIUlLogger
+                ? ((JNIUlLogger) logger).getDelegate()
+                : (UltralightLogger) logger;
     }
 
-    private native UltralightLogger nativeGetLogger();
+    private native Object nativeGetLogger();
 
     @Override
     public void setFilesystem(UltralightFilesystem filesystem) {
-        nativeSetFilesystem(new JNIUlFilesystem(filesystem));
+        nativeSetFilesystem(filesystem == null ? null : new JNIUlFilesystem(filesystem));
     }
 
     private native void nativeSetFilesystem(JNIUlFilesystem filesystem);
 
     @Override
     public UltralightFilesystem getFilesystem() {
-        return nativeGetFilesystem();
+        Object filesystem = nativeGetFilesystem();
+
+        // Our own wrappers are unwrapped, native implementations are returned as they are
+        return filesystem instanceof JNIUlFilesystem
+                ? ((JNIUlFilesystem) filesystem).getDelegate()
+                : (UltralightFilesystem) filesystem;
     }
 
-    private native UltralightFilesystem nativeGetFilesystem();
+    private native Object nativeGetFilesystem();
 
     @Override
     public void setClipboard(UltralightClipboard clipboard) {
-        nativeSetClipboard(clipboard);
+        nativeSetClipboard(clipboard == null ? null : new JNIUlClipboard(clipboard));
     }
 
-    private native void nativeSetClipboard(UltralightClipboard clipboard);
+    private native void nativeSetClipboard(JNIUlClipboard clipboard);
 
     @Override
     public UltralightClipboard getClipboard() {
-        return nativeGetClipboard();
+        Object clipboard = nativeGetClipboard();
+
+        // Our own wrappers are unwrapped, native implementations are returned as they are
+        return clipboard instanceof JNIUlClipboard
+                ? ((JNIUlClipboard) clipboard).getDelegate()
+                : (UltralightClipboard) clipboard;
     }
 
-    private native UltralightClipboard nativeGetClipboard();
+    private native Object nativeGetClipboard();
 
     @Override
     public void setSurfaceFactory(UltralightSurfaceFactory surfaceFactory) {
-        nativeSetSurfaceFactory(new JNIUlSurfaceFactory(surfaceFactory));
+        nativeSetSurfaceFactory(surfaceFactory == null ? null : new JNIUlSurfaceFactory(surfaceFactory));
     }
 
     private native void nativeSetSurfaceFactory(JNIUlSurfaceFactory surfaceFactory);
 
     @Override
     public UltralightSurfaceFactory surfaceFactory() {
-        return nativeSurfaceFactory();
+        Object surfaceFactory = nativeSurfaceFactory();
+
+        // Our own wrappers are unwrapped, native implementations are returned as they are
+        return surfaceFactory instanceof JNIUlSurfaceFactory
+                ? ((JNIUlSurfaceFactory) surfaceFactory).getDelegate()
+                : (UltralightSurfaceFactory) surfaceFactory;
     }
 
-    private native UltralightSurfaceFactory nativeSurfaceFactory();
+    private native Object nativeSurfaceFactory();
 
     @Override
     public UlRenderer createRenderer() {

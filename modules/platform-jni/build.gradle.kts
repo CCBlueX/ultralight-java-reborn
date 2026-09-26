@@ -79,7 +79,6 @@ configurations {
     val nativesElements = create("nativesElements") {
         isCanBeResolved = false
         isCanBeConsumed = true
-        isVisible = false
 
         attributes {
             attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
@@ -104,19 +103,24 @@ tasks.named<JavaCompile>("compileJava") {
     }
 }
 
+val buildDirectory: File = layout.buildDirectory.get().asFile
+
 // Sometimes we want to disable the native build, for example when cross-compiling
 val prebuiltNativesDir =
-    project.properties["ujr.prebuiltNativesDir"]?.toString()?.let { file(it) } ?: file(
-        buildDir.resolve("prebuilt-natives")
-    )
-val importPrebuiltNatives = project.properties["ujr.importPrebuiltNatives"]?.toString()?.toBoolean() ?: false
+    providers.gradleProperty("ujr.prebuiltNativesDir").orNull?.let { file(it) } ?: buildDirectory.resolve("prebuilt-natives")
+val importPrebuiltNatives = providers.gradleProperty("ujr.importPrebuiltNatives").orNull?.toBoolean() ?: false
 
 if (!importPrebuiltNatives) {
     val nativeConfiguration =
-        if (project.properties["ujr.nativeReleaseBuild"]?.toString()?.toBoolean() == true) "Release" else "Debug"
+        if (providers.gradleProperty("ujr.nativeReleaseBuild").orNull?.toBoolean() == true) "Release" else "Debug"
 
-    // During gradle configuration, also perform CMake configuration
-    val nativeDir = buildDir.toPath().resolve("native")
+    // The Ultralight SDK, either as its .7z archive or an extracted directory
+    val ultralightSdk = providers.gradleProperty("ujr.ultralightSdk").orNull ?: System.getenv("ULTRALIGHT_SDK")
+
+    // Additional arguments for CMake, for example a generator or the architecture to build for
+    val extraCmakeArgs = providers.gradleProperty("ujr.cmakeArgs").orNull?.split(' ')?.filter { it.isNotBlank() }.orEmpty()
+
+    val nativeDir = buildDirectory.toPath().resolve("native")
 
     val cmakeRunDir = nativeDir.resolve("cmake")
     val cmake = findCMake()
@@ -125,10 +129,31 @@ if (!importPrebuiltNatives) {
     val cmakeBinaryDir = cmakeRunDir.toString()
     val installDir = nativeDir.resolve("prefix").toString()
     val libsDir = file("$installDir/lib")
+    val sharedDir = file("$installDir/share")
     val compactedDir = nativeDir.resolve("compacted")
 
+    val readSystemIdent = { Files.readAllLines(cmakeRunDir.resolve("ultralight.ident")).first() }
+
+    val configureNativeTask = tasks.register<Exec>("configureNative") {
+        val compileJava = tasks.named<JavaCompile>("compileJava").get()
+        val javaHome = compileJava.javaCompiler.get()
+            .metadata
+            .installationPath
+            .toString()
+            .replace(File.separatorChar, '/')
+
+        executable = cmake.toString()
+        args = listOf(
+            "-S", cmakeSource,
+            "-B", cmakeBinaryDir,
+            "-DUJR_JNI_HEADER_DIR=${compileJava.options.headerOutputDirectory.get()}",
+            "-DJAVA_HOME=$javaHome",
+            "-DCMAKE_BUILD_TYPE=$nativeConfiguration",
+        ) + listOfNotNull(ultralightSdk?.let { "-DULTRALIGHT_SDK=$it" }) + extraCmakeArgs
+    }
+
     val buildNativeTask = tasks.register<Exec>("buildNative") {
-        dependsOn("compileJava")
+        dependsOn("compileJava", configureNativeTask)
         executable = cmake.toString()
         args = listOf(
             "--build", cmakeBinaryDir,
@@ -139,6 +164,10 @@ if (!importPrebuiltNatives) {
 
     val installNativeTask = tasks.register<Exec>("installNative") {
         dependsOn(buildNativeTask)
+
+        doFirst {
+            delete(installDir)
+        }
 
         executable = cmake.toString()
         args = listOf(
@@ -162,32 +191,35 @@ if (!importPrebuiltNatives) {
             data class FileInformation(val path: Path, val type: String, val names: MutableList<String>)
 
             val knownFiles = hashMapOf<String, FileInformation>()
-            val systemIdent = Files.readAllLines(cmakeRunDir.resolve("ultralight.ident")).first()
+            val systemIdent = readSystemIdent()
 
             val addFiles = { type: String, dir: File ->
                 val dirPath = dir.toPath()
 
-                Files.walk(dirPath).forEach { found ->
-                    if (found.isDirectory()) {
-                        return@forEach
-                    }
+                if (Files.isDirectory(dirPath)) {
+                    Files.walk(dirPath).forEach { found ->
+                        if (found.isDirectory()) {
+                            return@forEach
+                        }
 
-                    val hash = calculateFileHash(found).joinToString("") { "%02x".format(it) }
-                    val knownFile = knownFiles[hash]
+                        val hash = calculateFileHash(found).joinToString("") { "%02x".format(it) }
+                        val knownFile = knownFiles[hash]
+                        val name = dirPath.relativize(found).toString().replace(File.separatorChar, '/')
 
-                    if (knownFile != null) {
-                        // We know a file with the same hash already, add its name to the list
-                        knownFile.names.add(dirPath.relativize(found).toString())
-                    } else {
-                        // New file found, add it to the map
-                        knownFiles[hash] = FileInformation(found, type, mutableListOf(dirPath.relativize(found).toString()))
+                        if (knownFile != null) {
+                            // We know a file with the same hash already, add its name to the list
+                            knownFile.names.add(name)
+                        } else {
+                            // New file found, add it to the map
+                            knownFiles[hash] = FileInformation(found, type, mutableListOf(name))
+                        }
                     }
                 }
             }
 
             // Find all files in the lib and resources directories
             addFiles("library", libsDir)
-            addFiles("resource", file("$installDir/share"))
+            addFiles("resource", sharedDir)
 
             if (!Files.isDirectory(compactedDir)) {
                 Files.createDirectories(compactedDir)
@@ -225,32 +257,16 @@ if (!importPrebuiltNatives) {
         }
     }
 
-    gradle.afterProject {
-        val javaHome = tasks.getByName<JavaCompile>("compileJava")
-            .javaCompiler.get()
-            .metadata
-            .installationPath
-            .toString()
-            .replace(File.separatorChar, '/')
+    tasks.register("exportPrebuiltNatives") {
+        dependsOn(compactNativeTask)
 
-        // Run CMake after project evaluation and configuration has finished
-        exec {
-            executable = cmake.toString()
-            args = listOf(
-                "-S", cmakeSource,
-                "-B", cmakeBinaryDir,
-                "-DUJR_JNI_HEADER_DIR=${tasks.getByName<JavaCompile>("compileJava").options.headerOutputDirectory.get()}",
-                "-DJAVA_HOME=$javaHome",
-                "-DCMAKE_BUILD_TYPE=$nativeConfiguration",
-            )
-        }
-
-        tasks.register<Copy>("exportPrebuiltNatives") {
-            val systemIdent = Files.readAllLines(cmakeRunDir.resolve("ultralight.ident")).first()
-            destinationDir = prebuiltNativesDir.resolve(systemIdent)
-
-            dependsOn(compactNativeTask)
-            from(compactedDir)
+        doLast {
+            val target = prebuiltNativesDir.resolve(readSystemIdent())
+            delete(target)
+            copy {
+                from(compactedDir)
+                into(target)
+            }
         }
     }
 } else {
@@ -273,7 +289,7 @@ if (!importPrebuiltNatives) {
 
             archiveClassifier.set(systemIdent)
         }
-        
+
         tasks.named("assemble") {
             dependsOn(jarTaskForSystem)
         }
