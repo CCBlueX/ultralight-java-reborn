@@ -1,7 +1,6 @@
 package net.janrupf.ujr.platform.jni;
 
 import net.janrupf.ujr.core.platform.InvalidPlatformEnvironmentException;
-import net.janrupf.ujr.core.platform.PlatformFeatures;
 import net.janrupf.ujr.core.platform.abstraction.*;
 import net.janrupf.ujr.core.platform.abstraction.javascript.JSCJSClassFactory;
 import net.janrupf.ujr.core.platform.abstraction.javascript.JSCJSContextGroupFactory;
@@ -35,12 +34,26 @@ import java.util.stream.Stream;
  * Ultralight API.
  */
 public class UJRJniPlatformProvider implements PlatformEnvironmentProvider {
+    /**
+     * The Ultralight libraries in the order they depend on each other.
+     */
+    private static final List<String> ULTRALIGHT_LIBRARIES = Arrays.asList(
+            "UltralightCore", // Core library, no dependencies
+            "WebCore", // WebCore, depends on UltralightCore
+            "Ultralight", // Main library, depends on all previous libraries
+            "AppCore" // AppCore, depends on all previous libraries
+    );
+
     private final CommonPlatformOptions commonPlatformOptions;
+    private final JniPlatformOptions jniPlatformOptions;
     private final BundledResources bundledResources;
 
     UJRJniPlatformProvider(PlatformEnvironmentOptionContainer options) {
         this.commonPlatformOptions = options.require(CommonPlatformOptions.class); // Always present
-        this.bundledResources = new BundledResources();
+
+        JniPlatformOptions jniPlatformOptions = options.use(JniPlatformOptions.class);
+        this.jniPlatformOptions = jniPlatformOptions != null ? jniPlatformOptions : new JniPlatformOptions();
+        this.bundledResources = new BundledResources(this.jniPlatformOptions.nativesClassLoader());
     }
 
     @Override
@@ -50,84 +63,59 @@ public class UJRJniPlatformProvider implements PlatformEnvironmentProvider {
 
     @Override
     public void performLoading() throws InvalidPlatformEnvironmentException {
+        Path ultralightDirectory = jniPlatformOptions.ultralightDirectory();
+        if (ultralightDirectory == null) {
+            throw new InvalidPlatformEnvironmentException(
+                    "No Ultralight runtime given, set it with JniPlatformOptions.ultralightDirectory, " +
+                            "the ujr.ultralightDirectory property or ULTRALIGHT_DIR");
+        }
+
+        // The Ultralight runtime comes first, our library depends on it
+        Path ultralightLibraries = ultralightDirectory.resolve("bin");
+        for (String library : ULTRALIGHT_LIBRARIES) {
+            Path libraryPath = ultralightLibraries.resolve(System.mapLibraryName(library));
+            if (!Files.isRegularFile(libraryPath)) {
+                throw new InvalidPlatformEnvironmentException("The Ultralight runtime is missing " + libraryPath);
+            }
+
+            try {
+                System.load(libraryPath.toAbsolutePath().toString());
+            } catch (Throwable e) {
+                throw new InvalidPlatformEnvironmentException("Failed to load " + libraryPath, e);
+            }
+        }
+
         List<HashedResource> natives = bundledResources.getForPlatform(this.commonPlatformOptions.platformIdentification());
 
-        // We need to extract the natives to a temporary directory and load them from there
-        Path nativesDir = this.commonPlatformOptions.temporaryDirectory().resolve("natives");
-        boolean useSymlinks = this.commonPlatformOptions.platformIdentification().supportsFeature(PlatformFeatures.SYMBOLIC_LINKS);
+        // Our own library has to be extracted to be loaded. It goes into a directory named after its hash, so an
+        // extracted copy can be reused, even while another process has it loaded.
+        String libraryName = System.mapLibraryName("ultralight-java-reborn");
+        HashedResource library = natives.stream()
+                .filter(nat -> nat.type().equals("library") && nat.names().contains(libraryName))
+                .findFirst()
+                .orElseThrow(() -> new InvalidPlatformEnvironmentException("The natives don't contain " + libraryName));
 
-        if (!Files.isDirectory(nativesDir)) {
-            try {
-                Files.createDirectories(nativesDir);
+        Path libraryPath = this.commonPlatformOptions.temporaryDirectory()
+                .resolve("natives")
+                .resolve(library.hash())
+                .resolve(libraryName);
+
+        if (!Files.isRegularFile(libraryPath)) {
+            try (InputStream in = library.bundledLocation().toURL().openStream()) {
+                Files.createDirectories(libraryPath.getParent());
+
+                Path partialPath = libraryPath.resolveSibling(libraryName + ".part");
+                Files.copy(in, partialPath, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(partialPath, libraryPath, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
-                throw new InvalidPlatformEnvironmentException("Failed to create natives directory", e);
+                throw new InvalidPlatformEnvironmentException("Failed to extract " + libraryName, e);
             }
         }
 
-        for (HashedResource nat : natives) {
-            if (!nat.type().equals("library")) {
-                // We only need to extract libraries
-                continue;
-            }
-
-            try (InputStream in = nat.bundledLocation().toURL().openStream()) {
-                if (useSymlinks) {
-                    // Extract to a file named after the hash
-                    Path targetFile = nativesDir.resolve(nat.hash());
-
-                    // Copy the native to the target file
-                    Files.copy(in, targetFile, StandardCopyOption.REPLACE_EXISTING);
-
-                    // Now create symlinks for all names to the target file
-                    for (String name : nat.names()) {
-                        Path link = nativesDir.resolve(name);
-
-                        Files.deleteIfExists(link);
-                        Files.createSymbolicLink(link, targetFile);
-                    }
-                } else {
-                    // Copy the file to each of its respective names
-                    for (String name : nat.names()) {
-                        Path targetFile = nativesDir.resolve(name);
-
-                        // TODO: This possible runs into file locking issues on Windows when multiple applications
-                        //       using Ultralight Java Reborn are running at the same time.
-                        Files.copy(in, targetFile, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
-            } catch (IOException e) {
-                throw new InvalidPlatformEnvironmentException("Failed to set up natives", e);
-            }
-        }
-
-        // Specific load order
-        List<String> librariesToLoad = Arrays.asList(
-                "UltralightCore", // Core library, no dependencies
-                "glib-2.0", "glib-2.0-0", // GLib, no dependencies
-                "gobject-2.0", "gobject-2.0-0",// GObject, depends on GLib
-                "gmodule-2.0", "gmodule-2.0-0", // GModule, depends on GLib
-                "gthread-2.0", "gthread-2.0-0", // GThread, depends on GLib
-                "gio-2.0", "gio-2.0-0", // GIO, depends on GLib, GObject and GModule
-                "gstreamer-full-1.0", "gstreamer-full-1.0-0", // GStreamer, depends on GLib
-                "WebCore", // WebCore, depends on all previous libraries
-                "Ultralight", // Main library, depends on all previous libraries
-                "AppCore", // AppCore, depends on all previous libraries
-                "ultralight-java-reborn" // JNI library, depends on all previous libraries
-        );
-
-        // And finally: load the libraries
-        for (String library : librariesToLoad) {
-            String mappedName = System.mapLibraryName(library);
-            Path libraryPath = nativesDir.resolve(mappedName);
-
-            // Some files don't exist on all platforms, so we need to check for their existence
-            if (Files.exists(libraryPath)) {
-                try {
-                    System.load(libraryPath.toAbsolutePath().toString());
-                } catch (Throwable e) {
-                    throw new InvalidPlatformEnvironmentException("Failed to load native library", e);
-                }
-            }
+        try {
+            System.load(libraryPath.toAbsolutePath().toString());
+        } catch (Throwable e) {
+            throw new InvalidPlatformEnvironmentException("Failed to load native library", e);
         }
     }
 
@@ -138,7 +126,8 @@ public class UJRJniPlatformProvider implements PlatformEnvironmentProvider {
         } else if (interfaceClass == UlResourceProvider.class) {
             return interfaceClass.cast(new JNIUlResourceProvider(
                     this.commonPlatformOptions.platformIdentification(),
-                    bundledResources
+                    bundledResources,
+                    jniPlatformOptions.ultralightDirectory()
             ));
         } else if (interfaceClass == UlKeyboard.class) {
             return interfaceClass.cast(new JNIUlKeyboard());

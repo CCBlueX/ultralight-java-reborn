@@ -2,13 +2,32 @@
 # Set up 3rdparty dependencies #
 ################################
 
+# The Ultralight SDK, either as its .7z archive or an extracted directory. Without it, the pinned build below is
+# downloaded.
+set(ULTRALIGHT_SDK "$ENV{ULTRALIGHT_SDK}" CACHE FILEPATH "Ultralight SDK archive (.7z) or extracted directory")
+
+# c909371f1047810ad7598745025b646d42635645
+#
+# https://github.com/ultralight-ux/Ultralight/commit/c909371f1047810ad7598745025b646d42635645
+set(ULTRALIGHT_VERSION "c909371")
+
 # Set the architecture information for ultralight
-if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(ULTRALIGHT_ARCH "x64")
-elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(ULTRALIGHT_ARCH "x86")
-else ()
-    message(FATAL_ERROR "Unsupported pointer size ${CMAKE_SIZEOF_VOID_P}")
+set(ULTRALIGHT_ARCH "" CACHE STRING "Override the Ultralight architecture (x64 or arm64)")
+if (NOT ULTRALIGHT_ARCH)
+    if (APPLE AND CMAKE_OSX_ARCHITECTURES)
+        set(ULTRALIGHT_PROCESSOR "${CMAKE_OSX_ARCHITECTURES}")
+    else ()
+        set(ULTRALIGHT_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+    endif ()
+
+    string(TOLOWER "${ULTRALIGHT_PROCESSOR}" ULTRALIGHT_PROCESSOR)
+    if (ULTRALIGHT_PROCESSOR MATCHES "^(x86_64|amd64|x64)$")
+        set(ULTRALIGHT_ARCH "x64")
+    elseif (ULTRALIGHT_PROCESSOR MATCHES "^(aarch64|arm64)$")
+        set(ULTRALIGHT_ARCH "arm64")
+    else ()
+        message(FATAL_ERROR "Unsupported processor ${ULTRALIGHT_PROCESSOR}")
+    endif ()
 endif ()
 
 # Set the OS information for ultralight
@@ -25,77 +44,66 @@ else ()
     message(FATAL_ERROR "Unsupported operating system")
 endif ()
 
-# Ultralight
-set(ULTRALIGHT_DIR "${CMAKE_CURRENT_BINARY_DIR}/ultralight-${ULTRALIGHT_OS_NAME}-${ULTRALIGHT_ARCH}")
-set(ULTRALIGHT_ARCHIVE "${ULTRALIGHT_DIR}/ultralight.7z")
-# c909371f1047810ad7598745025b646d42635645
-#
-# https://github.com/ultralight-ux/Ultralight/commit/c909371f1047810ad7598745025b646d42635645
-set(ULTRALIGHT_VERSION "c909371")
+set(ULTRALIGHT_IDENT "${ULTRALIGHT_OS_NAME}-${ULTRALIGHT_ARCH}")
 
-# Check the version of ultralight
-set(ULTRALIGHT_VERSION_FILE "${ULTRALIGHT_DIR}/.version")
-if (EXISTS "${ULTRALIGHT_VERSION_FILE}")
-    # The version file exists, read it
-    file(READ "${ULTRALIGHT_VERSION_FILE}" ULTRALIGHT_INSTALLED_VERSION)
+if (IS_DIRECTORY "${ULTRALIGHT_SDK}")
+    set(ULTRALIGHT_DIR "${ULTRALIGHT_SDK}")
+else ()
+    set(ULTRALIGHT_DIR "${CMAKE_CURRENT_BINARY_DIR}/ultralight-${ULTRALIGHT_IDENT}")
+    set(ULTRALIGHT_VERSION_FILE "${ULTRALIGHT_DIR}/.version")
+
+    if (ULTRALIGHT_SDK)
+        file(SHA256 "${ULTRALIGHT_SDK}" ULTRALIGHT_SDK_VERSION)
+    else ()
+        set(ULTRALIGHT_SDK_VERSION "${ULTRALIGHT_VERSION}")
+    endif ()
+
+    if (EXISTS "${ULTRALIGHT_VERSION_FILE}")
+        file(READ "${ULTRALIGHT_VERSION_FILE}" ULTRALIGHT_INSTALLED_VERSION)
+    endif ()
+
+    # Extract the SDK, again whenever it changes
+    if (NOT "${ULTRALIGHT_SDK_VERSION}" STREQUAL "${ULTRALIGHT_INSTALLED_VERSION}")
+        file(REMOVE_RECURSE "${ULTRALIGHT_DIR}")
+
+        set(ULTRALIGHT_ARCHIVE "${ULTRALIGHT_SDK}")
+        if (NOT ULTRALIGHT_ARCHIVE)
+            set(ULTRALIGHT_ARCHIVE "${CMAKE_CURRENT_BINARY_DIR}/ultralight-${ULTRALIGHT_IDENT}.7z")
+            file(DOWNLOAD
+                    "https://ultralight-sdk.sfo2.cdn.digitaloceanspaces.com/ultralight-sdk-${ULTRALIGHT_VERSION}-${ULTRALIGHT_IDENT}.7z"
+                    "${ULTRALIGHT_ARCHIVE}"
+                    STATUS ULTRALIGHT_DOWNLOAD_STATUS
+                    LOG ULTRALIGHT_DOWNLOAD_LOG
+                    )
+
+            list(GET ULTRALIGHT_DOWNLOAD_STATUS 0 ULTRALIGHT_DOWNLOAD_ERROR_CODE)
+            list(GET ULTRALIGHT_DOWNLOAD_STATUS 1 ULTRALIGHT_DOWNLOAD_ERROR_MESSAGE)
+            if (NOT ULTRALIGHT_DOWNLOAD_ERROR_CODE EQUAL 0)
+                message(FATAL_ERROR "Failed to download Ultralight for ${ULTRALIGHT_IDENT}: "
+                        "${ULTRALIGHT_DOWNLOAD_ERROR_MESSAGE}\n\n${ULTRALIGHT_DOWNLOAD_LOG}")
+            endif ()
+        endif ()
+
+        file(ARCHIVE_EXTRACT INPUT "${ULTRALIGHT_ARCHIVE}" DESTINATION "${ULTRALIGHT_DIR}")
+        file(WRITE "${ULTRALIGHT_VERSION_FILE}" "${ULTRALIGHT_SDK_VERSION}")
+    endif ()
 endif ()
 
-# Check if the installed version matches the target version
-if (NOT "${ULTRALIGHT_VERSION}" STREQUAL "${ULTRALIGHT_INSTALLED_VERSION}")
-    # Versions do not match, erase the installed version
-    file(REMOVE_RECURSE "${ULTRALIGHT_DIR}")
+if (NOT EXISTS "${ULTRALIGHT_DIR}/include/Ultralight/Ultralight.h")
+    message(FATAL_ERROR "${ULTRALIGHT_DIR} is not an Ultralight SDK")
 endif ()
 
-# Check if the ultralight directory exists
-if (NOT EXISTS "${ULTRALIGHT_DIR}")
-    # It does not, download ultralight and extract it
-    file(DOWNLOAD
-            "https://ultralight-sdk.sfo2.cdn.digitaloceanspaces.com/ultralight-sdk-${ULTRALIGHT_VERSION}-${ULTRALIGHT_OS_NAME}-${ULTRALIGHT_ARCH}.7z"
-            "${ULTRALIGHT_ARCHIVE}"
-            SHOW_PROGRESS
-            STATUS ULTRALIGHT_DOWNLOAD_STATUS
-            LOG ULTRALIGHT_DOWNLOAD_LOG
-            )
-
-    # Extract the status from the download return value
-    list(GET ULTRALIGHT_DOWNLOAD_STATUS 0 ULTRALIGHT_DOWNLOAD_ERROR_CODE)
-    list(GET ULTRALIGHT_DOWNLOAD_STATUS 1 ULTRALIGHT_DOWNLOAD_ERROR_MESSAGE)
-
-    # Check the download status
-    if(NOT ULTRALIGHT_DOWNLOAD_ERROR_CODE EQUAL 0)
-        # Download failed
-        message(SEND_ERROR "Failed to download Ultralight: ${ULTRALIGHT_DOWNLOAD_ERROR_MESSAGE}\n\n${ULTRALIGHT_DOWNLOAD_LOG}")
-    endif()
-
-    # Extract it
-    execute_process(
-            COMMAND "${CMAKE_COMMAND}" -E tar xvf "${ULTRALIGHT_ARCHIVE}"
-            WORKING_DIRECTORY "${ULTRALIGHT_DIR}"
-            RESULT_VARIABLE EXTRACT_ERROR
-    )
-
-    if(EXTRACT_ERROR)
-        message(FATAL_ERROR "Failed to extract the ultralight zip archive")
-    endif()
-
-    # Delete the archive file
-    file(REMOVE "${ULTRALIGHT_ARCHIVE}")
-
-    # Write the version file
-    file(WRITE "${ULTRALIGHT_VERSION_FILE}" "${ULTRALIGHT_VERSION}")
-endif ()
+message(STATUS "Using the Ultralight SDK in ${ULTRALIGHT_DIR} for ${ULTRALIGHT_IDENT}")
 
 # Add the ultralight target
 add_library(ultralight INTERFACE)
-target_include_directories(ultralight INTERFACE "${ULTRALIGHT_DIR}/include")
+target_include_directories(ultralight SYSTEM INTERFACE "${ULTRALIGHT_DIR}/include")
 target_link_directories(ultralight INTERFACE "${ULTRALIGHT_DIR}/${ULTRALIGHT_LINK_DIRECTORY}")
 target_link_libraries(ultralight INTERFACE AppCore Ultralight UltralightCore WebCore)
 
-# Installation
-file(GLOB ULTRALIGHT_SHARED_LIBRARIES_INSTALL "${ULTRALIGHT_DIR}/bin/*")
-install(FILES ${ULTRALIGHT_SHARED_LIBRARIES_INSTALL} TYPE LIB)
-file(GLOB ULTRALIGHT_RESOURCES_INSTALL "${ULTRALIGHT_DIR}/resources/*")
-install(FILES ${ULTRALIGHT_RESOURCES_INSTALL} TYPE DATA)
+# The Ultralight runtime itself is not installed: its license doesn't allow passing it on outside of an
+# application, so applications ship it to their users themselves
+install(FILES "${ULTRALIGHT_DIR}/license/LICENSE.txt" "${ULTRALIGHT_DIR}/license/NOTICES.md"
+        DESTINATION share/licenses/ultralight)
 
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ultralight.ident" "${ULTRALIGHT_OS_NAME}-${ULTRALIGHT_ARCH}")
-
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ultralight.ident" "${ULTRALIGHT_IDENT}")
