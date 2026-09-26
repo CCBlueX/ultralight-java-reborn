@@ -21,6 +21,7 @@
 #include "ujr/util/JniEntryGuard.hpp"
 #include "ujr/wrapper/clipboard/Clipboard.hpp"
 #include "ujr/wrapper/filesystem/Filesystem.hpp"
+#include "ujr/wrapper/gpu/GPUDriver.hpp"
 #include "ujr/wrapper/logger/Logger.hpp"
 #include "ujr/wrapper/surface/SurfaceFactory.hpp"
 
@@ -323,6 +324,47 @@ Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeSurfaceFactory(JNIEnv
     });
 }
 
+JNIEXPORT void JNICALL
+Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeSetGPUDriver(JNIEnv *env, jobject self, jobject driver) {
+    ujr::jni_entry_guard(env, [&](auto env) {
+        using ujr::native_access::JNIUlPlatform;
+
+        auto *collector = reinterpret_cast<ujr::PlatformCollector *>(JNIUlPlatform::NATIVE_COLLECTOR.get(env, self));
+
+        // Clear the field in case an exception is thrown before we set it again
+        delete collector->gpu_driver;
+        collector->gpu_driver = nullptr;
+
+        auto j_driver = env.wrap_argument(driver);
+        auto *platform = reinterpret_cast<ultralight::Platform *>(JNIUlPlatform::HANDLE.get(env, self));
+
+        ujr::GPUDriver *new_native_driver = nullptr;
+
+        if (j_driver.is_valid()) {
+            new_native_driver = new ujr::GPUDriver(j_driver.clone_as_global());
+        }
+
+        platform->set_gpu_driver(new_native_driver);
+        collector->gpu_driver = new_native_driver;
+    });
+}
+
+JNIEXPORT jobject JNICALL
+Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeGetGPUDriver(JNIEnv *env, jobject self) {
+    return ujr::jni_entry_guard(env, [&](auto env) -> jobject {
+        using ujr::native_access::JNIUlPlatform;
+
+        auto *collector = reinterpret_cast<ujr::PlatformCollector *>(JNIUlPlatform::NATIVE_COLLECTOR.get(env, self));
+
+        if (!collector->gpu_driver) {
+            // No driver set, return null
+            return nullptr;
+        }
+
+        return collector->gpu_driver->get_j_driver().get();
+    });
+}
+
 JNIEXPORT jobject JNICALL
 Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeCreateRenderer(JNIEnv *env, jobject) {
     return ujr::jni_entry_guard(env, [&](auto env) -> jobject {
@@ -338,13 +380,15 @@ namespace ujr {
         : logger(nullptr)
         , filesystem(nullptr)
         , clipboard(nullptr)
-        , surface_factory(nullptr) {}
+        , surface_factory(nullptr)
+        , gpu_driver(nullptr) {}
 
     void PlatformCollector::collect() {
         delete logger;
         delete filesystem;
         delete clipboard;
         delete surface_factory;
+        delete gpu_driver;
     }
 
     JniLocalRef<jobject> Platform::wrap(const JniEnv &env, ultralight::Platform &platform) {

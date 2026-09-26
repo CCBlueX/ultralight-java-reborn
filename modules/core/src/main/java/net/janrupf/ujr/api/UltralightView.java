@@ -11,6 +11,7 @@ import net.janrupf.ujr.api.javascript.JavaScriptException;
 import net.janrupf.ujr.api.filesystem.UltralightFilesystem;
 import net.janrupf.ujr.api.listener.UltralightLoadListener;
 import net.janrupf.ujr.api.listener.UltralightViewListener;
+import net.janrupf.ujr.api.gpu.UlRenderTarget;
 import net.janrupf.ujr.api.surface.UltralightSurface;
 import net.janrupf.ujr.core.platform.abstraction.UlView;
 
@@ -144,6 +145,17 @@ public class UltralightView {
      */
     public UltralightSurface surface() {
         return view.surface();
+    }
+
+    /**
+     * Retrieves where the view is rendered to by the GPU driver.
+     * <p>
+     * Only accelerated views have a render target.
+     *
+     * @return the render target
+     */
+    public UlRenderTarget renderTarget() {
+        return view.renderTarget();
     }
 
     /**
