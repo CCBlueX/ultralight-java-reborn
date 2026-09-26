@@ -12,6 +12,8 @@ import java.nio.ByteBuffer;
  * {@link net.janrupf.ujr.api.UltralightRenderer#render()}, on the thread that calls them.
  * <p>
  * Buffers and bitmaps passed to the driver point into memory of Ultralight and are only valid during the call.
+ * <p>
+ * The methods must not throw: an exception unwinds through Ultralight's renderer, which can't draw anymore afterwards.
  *
  * @see <a href="https://docs.ultralig.ht/docs/using-a-custom-gpudriver">Using a custom GPUDriver</a>
  */
