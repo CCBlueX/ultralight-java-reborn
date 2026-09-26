@@ -13,6 +13,11 @@ on:
         type: string
         default: ''
 
+env:
+  ULTRALIGHT_VERSION: 1.4.0
+  # The Ultralight SDK can't be redistributed, so it comes from our own storage
+  RESOURCE_API: https://api.liquidbounce.net/api/v3/resource
+
 jobs:
   natives:
     name: ${{ inputs.ident }}
@@ -32,11 +37,15 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Download the Ultralight SDK
+        run: .github/scripts/download-ultralight.sh ultralight-sdk ${{ inputs.ident }} .ultralight/sdk.7z
+
       - name: Build the natives and run the smoke test
         run: |
           # Java and CMake on Windows need Windows paths
           root=$(pwd -W 2>/dev/null || pwd)
           ./gradlew \
+            "-Pujr.ultralightSdk=$root/.ultralight/sdk.7z" \
             "-Pujr.cmakeArgs=${{ inputs.cmake-args }}" \
             "-Pujr.prebuiltNativesDir=$root/build/prebuilt-natives" \
             "-Pujr.ultralightDirectory=$root/modules/platform-jni/build/native/cmake/ultralight-${{ inputs.ident }}" \

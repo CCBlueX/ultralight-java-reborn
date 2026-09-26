@@ -14,6 +14,8 @@ public interface UlRenderer {
 
     void update();
 
+    void refreshDisplay(int displayId);
+
     void render();
 
     void renderOnly(UltralightView[] views);

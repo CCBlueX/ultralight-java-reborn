@@ -113,6 +113,19 @@ public class UltralightRenderer {
     }
 
     /**
+     * Notify the renderer that a display has refreshed, which drives animations and smooth scrolling of the views
+     * on that display.
+     * <p>
+     * Call this once per frame, before {@link #render()}. Views are on display 0 unless their config says
+     * otherwise.
+     *
+     * @param displayId the id of the display that refreshed
+     */
+    public void refreshDisplay(int displayId) {
+        renderer.refreshDisplay(displayId);
+    }
+
+    /**
      * Render all active views to their respective render-targets/surfaces.
      * <p>
      * You should call this once per frame (usually in synchrony with the

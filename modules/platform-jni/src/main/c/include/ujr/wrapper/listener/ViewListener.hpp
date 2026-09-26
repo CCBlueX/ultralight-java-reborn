@@ -23,15 +23,7 @@ namespace ujr {
 
         void OnChangeCursor(ultralight::View *caller, ultralight::Cursor cursor) final;
 
-        void OnAddConsoleMessage(
-            ultralight::View *caller,
-            ultralight::MessageSource source,
-            ultralight::MessageLevel level,
-            const ultralight::String &message,
-            uint32_t line_number,
-            uint32_t column_number,
-            const ultralight::String &source_id
-        ) final;
+        void OnAddConsoleMessage(ultralight::View *caller, const ultralight::ConsoleMessage &console_message) final;
 
         ultralight::RefPtr<ultralight::View> OnCreateChildView(
             ultralight::View *caller,

@@ -163,4 +163,10 @@ public class UlConfig {
      */
     @Native
     public long bitmapAlignment = 16;
+
+    /**
+     * The quality of effects such as blurs and shadows. See {@link UlEffectQuality}
+     */
+    @Native
+    public UlEffectQuality effectQuality = UlEffectQuality.MEDIUM;
 }

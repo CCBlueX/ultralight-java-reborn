@@ -57,5 +57,15 @@ public enum JSTypedArrayType {
     /**
      * Not a typed array
      */
-    NONE
+    NONE,
+
+    /**
+     * BigInt64Array
+     */
+    BIGINT64_ARRAY,
+
+    /**
+     * BigUint64Array
+     */
+    BIGUINT64_ARRAY
 }

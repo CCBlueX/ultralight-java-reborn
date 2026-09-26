@@ -1,6 +1,7 @@
 package net.janrupf.ujr.api;
 
 import net.janrupf.ujr.api.config.UlConfig;
+import net.janrupf.ujr.api.config.UlEffectQuality;
 import net.janrupf.ujr.api.config.UlFaceWinding;
 import net.janrupf.ujr.api.config.UlFontHinting;
 
@@ -246,6 +247,19 @@ public class UltralightConfigBuilder extends UlConfig {
      */
     public UltralightConfigBuilder bitmapAlignment(long bitmapAlignment) {
         this.bitmapAlignment = bitmapAlignment;
+        return this;
+    }
+
+    /**
+     * Sets the quality of effects such as blurs and shadows.
+     * <p>
+     * See {@link UlConfig#effectQuality} for more information.
+     *
+     * @param effectQuality the effect quality to use
+     * @return this
+     */
+    public UltralightConfigBuilder effectQuality(UlEffectQuality effectQuality) {
+        this.effectQuality = effectQuality;
         return this;
     }
 

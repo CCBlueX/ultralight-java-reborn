@@ -45,12 +45,12 @@ Add the dependencies:
 ```kotlin
 dependencies {
     // Java libraries, these are needed for compilation and runtime
-    implementation("net.ccbluex.ultralight:ultralight-java-reborn-core:0.1.0")
-    implementation("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.1.0")
+    implementation("net.ccbluex.ultralight:ultralight-java-reborn-core:0.2.0")
+    implementation("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.2.0")
 
     // The native library, needed at runtime only (it contains no Java code)
-    runtimeOnly("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.1.0:linux-x64")
-    // or win-x64, mac-x64
+    runtimeOnly("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.2.0:linux-x64")
+    // or linux-arm64, win-x64, mac-x64, mac-arm64
 }
 ```
 
@@ -75,16 +75,18 @@ The `ujr.ultralightDirectory` system property and the `ULTRALIGHT_DIR` environme
 | Ultralight Java Reborn | Ultralight |
 |---|---|
 | 0.1.0 | 1.3 (`c909371`) |
+| 0.2.0 | 1.4.0 |
 
 Ultralight 1.3's `libWebCore.so` requires an executable stack, which glibc 2.41 and newer refuse to load.
 
+Ultralight 1.4 needs `UltralightRenderer.refreshDisplay(0)` before every `render()` for animations and scrolling.
+
 ## Building
 
-The build downloads the Ultralight SDK it targets. To build against another copy, pass the archive or an extracted
-SDK:
+The Ultralight 1.4 SDK needs an account to download, so pass the archive or an extracted SDK to the build:
 
 ```sh
-./gradlew -Pujr.ultralightSdk=path/to/ultralight-sdk-c909371-linux-x64.7z assemble
+./gradlew -Pujr.ultralightSdk=path/to/ultralight-free-sdk-1.4.0-linux-x64.7z assemble
 ```
 
 To run the smoke test, also pass the runtime, for example the extracted SDK: `-Pujr.ultralightDirectory=path/to/sdk

@@ -3,6 +3,7 @@
 #include "net_janrupf_ujr_platform_jni_impl_javascript_JNIJSCJSGlobalContextFactory.h"
 
 #include "ujr/javascript/JSGlobalContext.hpp"
+#include "ujr/javascript/JSJavaPrivateData.hpp"
 #include "ujr/util/JniEntryGuard.hpp"
 
 JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJSCJSGlobalContextFactory_nativeCreate(
@@ -19,6 +20,10 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
         }
 
         auto context = JSGlobalContextCreate(js_global_class);
+        if (const auto *class_data = ujr::JSClassJavaSharedData::of_class(js_global_class)) {
+            // Callbacks find the Java side of the class through the private data of the object
+            JSObjectSetPrivate(JSContextGetGlobalObject(context), const_cast<ujr::JSClassJavaSharedData *>(class_data));
+        }
 
         return ujr::JSGlobalContext::wrap(env, context).leak();
     });
@@ -41,6 +46,10 @@ Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJSCJSGlobalContextFactory_n
 
         auto js_group = reinterpret_cast<JSContextGroupRef>(JNIJSCJSContextGroup::HANDLE.get(env, group));
         auto context = JSGlobalContextCreateInGroup(js_group, js_global_class);
+        if (const auto *class_data = ujr::JSClassJavaSharedData::of_class(js_global_class)) {
+            // Callbacks find the Java side of the class through the private data of the object
+            JSObjectSetPrivate(JSContextGetGlobalObject(context), const_cast<ujr::JSClassJavaSharedData *>(class_data));
+        }
 
         return ujr::JSGlobalContext::wrap(env, context).leak();
     });

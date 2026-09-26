@@ -15,6 +15,8 @@
 
 #include <JavaScriptCore/JSStringRef.h>
 
+#include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "ujr/javascript/JniJavaScriptValueException.hpp"
@@ -119,17 +121,18 @@ void js_entry_guard(JSContextRef ctx, JSValueRef *exception, Cb &&cb)
 
 namespace ujr {
     JSValueRef JSJavaClassCallbacks::get_static_property(
-        JSContextRef ctx, JSClassRef js_class, JSObjectRef object, JSStringRef property_name, JSValueRef *exception
+        JSContextRef ctx, JSObjectRef object, JSStringRef property_name, JSValueRef *exception
     ) {
         return js_entry_guard(ctx, exception, [&](auto env) {
             using native_access::JNIJSCJSObjectGetPropertyCallback;
             using native_access::JNIJSCJSValue;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
             auto cpp_property_name = JSString::to_cpp(property_name);
 
-            if (auto it = shared_data->static_property_callbacks.find(cpp_property_name);
-                it != shared_data->static_property_callbacks.end() && it->second.get_property.is_valid(env)) {
+            const auto *property = class_data ? class_data->find_static_property(cpp_property_name) : nullptr;
+
+            if (property && property->get_property.is_valid(env)) {
                 JSValueProtect(ctx, object);
 
                 auto j_context = JSContext::wrap(env, ctx);
@@ -137,7 +140,7 @@ namespace ujr {
                 auto j_property_name = JniLocalRef<jstring>::from_utf8(env, cpp_property_name.c_str());
 
                 auto j_result = JNIJSCJSObjectGetPropertyCallback::GET_PROPERTY
-                                    .invoke(env, it->second.get_property, j_context, j_object, j_property_name);
+                                    .invoke(env, property->get_property, j_context, j_object, j_property_name);
 
                 return reinterpret_cast<JSValueRef>(JNIJSCJSValue::HANDLE.get(env, j_result));
             }
@@ -147,9 +150,7 @@ namespace ujr {
     }
 
     bool JSJavaClassCallbacks::set_static_property(
-        JSContextRef ctx,
-        JSClassRef js_class,
-        JSObjectRef object,
+        JSContextRef ctx, JSObjectRef object,
         JSStringRef property_name,
         JSValueRef value,
         JSValueRef *exception
@@ -158,11 +159,12 @@ namespace ujr {
             using native_access::JNIJSCJSObjectSetPropertyCallback;
             using native_access::JNIJSCJSValue;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
             auto cpp_property_name = JSString::to_cpp(property_name);
 
-            if (auto it = shared_data->static_property_callbacks.find(cpp_property_name);
-                it != shared_data->static_property_callbacks.end() && it->second.set_property.is_valid(env)) {
+            const auto *property = class_data ? class_data->find_static_property(cpp_property_name) : nullptr;
+
+            if (property && property->set_property.is_valid(env)) {
                 JSValueProtect(ctx, object);
                 JSValueProtect(ctx, value);
 
@@ -173,7 +175,7 @@ namespace ujr {
 
                 auto j_result
                     = JNIJSCJSObjectSetPropertyCallback::SET_PROPERTY
-                          .invoke(env, it->second.set_property, j_context, j_object, j_property_name, j_value);
+                          .invoke(env, property->set_property, j_context, j_object, j_property_name, j_value);
 
                 return static_cast<bool>(j_result);
             }
@@ -182,13 +184,14 @@ namespace ujr {
         });
     }
 
-    void JSJavaClassCallbacks::initialize(JSContextRef ctx, JSClassRef js_class, JSObjectRef object) {
+    void JSJavaClassCallbacks::initialize(JSContextRef ctx, JSObjectRef object) {
         js_entry_guard(ctx, nullptr, [&](auto env) {
             using native_access::JNIJSCJSObjectInitializeCallback;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::initialize_callback, env) : nullptr;
 
-            if (shared_data->initialize_callback.is_valid(env)) {
+            if (shared_data) {
                 JSValueProtect(ctx, object);
 
                 auto j_context = JSContext::wrap(env, ctx);
@@ -200,27 +203,29 @@ namespace ujr {
         });
     }
 
-    void JSJavaClassCallbacks::finalize(JSClassRef js_class, JSObjectRef object) {
+    void JSJavaClassCallbacks::finalize(JSObjectRef object) {
         using native_access::JNIJSCJSObjectFinalizeCallback;
 
-        auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
         auto env = JniEnv::from_thread();
+        const auto *class_data = JSClassJavaSharedData::of_object(object);
+        const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::finalize_callback, env) : nullptr;
 
-        if (shared_data->finalize_callback.is_valid(env)) {
+        if (shared_data) {
             auto j_object = JSObject::wrap(env, nullptr, object);
             JNIJSCJSObjectFinalizeCallback::DO_FINALIZE.invoke(env, shared_data->finalize_callback, j_object);
         }
     }
 
     bool JSJavaClassCallbacks::has_property(
-        JSContextRef ctx, JSClassRef js_class, JSObjectRef object, JSStringRef property_name
+        JSContextRef ctx, JSObjectRef object, JSStringRef property_name
     ) {
         return js_entry_guard(ctx, nullptr, [&](auto env) {
             using native_access::JNIJSCJSObjectHasPropertyCallback;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::has_property_callback, env) : nullptr;
 
-            if (shared_data->has_property_callback.is_valid(env)) {
+            if (shared_data) {
                 JSValueProtect(ctx, object);
 
                 auto j_context = JSContext::wrap(env, ctx);
@@ -239,15 +244,16 @@ namespace ujr {
     }
 
     JSValueRef JSJavaClassCallbacks::get_property(
-        JSContextRef ctx, JSClassRef js_class, JSObjectRef object, JSStringRef property_name, JSValueRef *exception
+        JSContextRef ctx, JSObjectRef object, JSStringRef property_name, JSValueRef *exception
     ) {
         return js_entry_guard(ctx, exception, [&](auto env) {
             using native_access::JNIJSCJSObjectGetPropertyCallback;
             using native_access::JNIJSCJSValue;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::get_property_callback, env) : nullptr;
 
-            if (shared_data->get_property_callback.is_valid(env)) {
+            if (shared_data) {
                 JSValueProtect(ctx, object);
 
                 auto j_context = JSContext::wrap(env, ctx);
@@ -266,9 +272,7 @@ namespace ujr {
     }
 
     bool JSJavaClassCallbacks::set_property(
-        JSContextRef ctx,
-        JSClassRef js_class,
-        JSObjectRef object,
+        JSContextRef ctx, JSObjectRef object,
         JSStringRef property_name,
         JSValueRef value,
         JSValueRef *exception
@@ -277,9 +281,10 @@ namespace ujr {
             using native_access::JNIJSCJSObjectSetPropertyCallback;
             using native_access::JNIJSCJSValue;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::set_property_callback, env) : nullptr;
 
-            if (shared_data->set_property_callback.is_valid(env)) {
+            if (shared_data) {
                 JSValueProtect(ctx, object);
                 JSValueProtect(ctx, value);
 
@@ -305,14 +310,15 @@ namespace ujr {
     }
 
     bool JSJavaClassCallbacks::delete_property(
-        JSContextRef ctx, JSClassRef js_class, JSObjectRef object, JSStringRef property_name, JSValueRef *exception
+        JSContextRef ctx, JSObjectRef object, JSStringRef property_name, JSValueRef *exception
     ) {
         return js_entry_guard(ctx, exception, [&](auto env) {
             using native_access::JNIJSCJSObjectDeletePropertyCallback;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::delete_property_callback, env) : nullptr;
 
-            if (shared_data->delete_property_callback.is_valid(env)) {
+            if (shared_data) {
                 JSValueProtect(ctx, object);
 
                 auto j_context = JSContext::wrap(env, ctx);
@@ -331,14 +337,15 @@ namespace ujr {
     }
 
     void JSJavaClassCallbacks::get_property_names(
-        JSContextRef ctx, JSClassRef js_class, JSObjectRef object, JSPropertyNameAccumulatorRef property_names
+        JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumulatorRef property_names
     ) {
         js_entry_guard(ctx, nullptr, [&](auto env) {
             using native_access::JNIJSCJSObjectGetPropertyNamesCallback;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::get_property_names_callback, env) : nullptr;
 
-            if (shared_data->get_property_names_callback.is_valid(env)) {
+            if (shared_data) {
                 JSValueProtect(ctx, object);
 
                 auto j_context = JSContext::wrap(env, ctx);
@@ -362,8 +369,6 @@ namespace ujr {
 
     JSValueRef JSJavaClassCallbacks::call_as_function(
         JSContextRef ctx,
-        JSClassRef js_class,
-        JSStringRef class_name,
         JSObjectRef function,
         JSObjectRef this_object,
         size_t argument_count,
@@ -374,9 +379,10 @@ namespace ujr {
             using native_access::JNIJSCJSObjectCallAsFunctionCallback;
             using native_access::JNIJSCJSValue;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(function);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::call_as_function_callback, env) : nullptr;
 
-            if (shared_data->call_as_function_callback.is_valid(env)) {
+            if (shared_data) {
                 env->PushLocalFrame(static_cast<jsize>(argument_count + 16));
 
                 JSValueRef result;
@@ -385,7 +391,7 @@ namespace ujr {
                     JSValueProtect(ctx, this_object);
 
                     auto j_context = JSContext::wrap(env, ctx);
-                    auto j_class_name = JSString::to_java(env, class_name);
+                    auto j_class_name = JniLocalRef<jstring>::from_utf8(env, shared_data->class_name.c_str());
                     auto j_function = JSObject::wrap(env, ctx, function);
                     auto j_this_object = JSObject::wrap(env, ctx, this_object);
 
@@ -422,10 +428,85 @@ namespace ujr {
         });
     }
 
-    JSObjectRef JSJavaClassCallbacks::call_as_constructor(
+    JSValueRef JSJavaClassCallbacks::call_static_function(
         JSContextRef ctx,
-        JSClassRef js_class,
-        JSObjectRef constructor,
+        JSObjectRef function,
+        JSObjectRef this_object,
+        size_t argument_count,
+        const JSValueRef *arguments,
+        JSValueRef *exception
+    ) {
+        return js_entry_guard(ctx, exception, [&](auto env) {
+            using native_access::JNIJSCJSObjectCallAsFunctionCallback;
+            using native_access::JNIJSCJSValue;
+
+            // Static functions are properties of the objects of the class, so the class is found through `this`
+            // and the function by its name
+            const auto *class_data = JSClassJavaSharedData::of_object(this_object);
+
+            JSStringRef js_name_property = JSStringCreateWithUTF8CString("name");
+            JSValueRef js_function_name = JSObjectGetProperty(ctx, function, js_name_property, nullptr);
+            JSStringRelease(js_name_property);
+
+            JSStringRef js_function_name_str = JSValueToStringCopy(ctx, js_function_name, nullptr);
+            std::string function_name = js_function_name_str ? JSString::to_cpp(js_function_name_str) : std::string();
+            if (js_function_name_str) {
+                JSStringRelease(js_function_name_str);
+            }
+
+            const auto *callback = class_data ? class_data->find_static_function(function_name) : nullptr;
+            if (!callback) {
+                throw std::runtime_error("The static function " + function_name + " was called without its object");
+            }
+
+            {
+                env->PushLocalFrame(static_cast<jsize>(argument_count + 16));
+
+                JSValueRef result;
+                try {
+                    JSValueProtect(ctx, function);
+                    JSValueProtect(ctx, this_object);
+
+                    auto j_context = JSContext::wrap(env, ctx);
+                    auto j_class_name = JniLocalRef<jstring>::from_utf8(env, function_name.c_str());
+                    auto j_function = JSObject::wrap(env, ctx, function);
+                    auto j_this_object = JSObject::wrap(env, ctx, this_object);
+
+                    auto j_arguments = env.wrap_argument(
+                        env->NewObjectArray(static_cast<jsize>(argument_count), JNIJSCJSValue::CLAZZ.get(env), nullptr)
+                    );
+                    for (size_t i = 0; i < argument_count; i++) {
+                        JSValueProtect(ctx, arguments[i]);
+                        auto j_argument = JSValue::wrap(env, ctx, arguments[i]);
+                        env->SetObjectArrayElement(j_arguments, static_cast<jsize>(i), j_argument);
+                    }
+
+                    auto j_result = JNIJSCJSObjectCallAsFunctionCallback::CALL_AS_FUNCTION.invoke(
+                        env,
+                        *callback,
+                        j_context,
+                        j_class_name,
+                        j_function,
+                        j_this_object,
+                        j_arguments
+                    );
+
+                    result = reinterpret_cast<JSValueRef>(JNIJSCJSValue::HANDLE.get(env, j_result));
+                } catch (...) {
+                    env->PopLocalFrame(nullptr);
+                    throw;
+                }
+
+                env->PopLocalFrame(nullptr);
+                return result;
+            }
+
+            return static_cast<JSValueRef>(nullptr);
+        });
+    }
+
+    JSObjectRef JSJavaClassCallbacks::call_as_constructor(
+        JSContextRef ctx, JSObjectRef constructor,
         size_t argument_count,
         const JSValueRef *arguments,
         JSValueRef *exception
@@ -434,9 +515,10 @@ namespace ujr {
             using native_access::JNIJSCJSObjectCallAsConstructorCallback;
             using native_access::JNIJSCJSValue;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(constructor);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::call_as_constructor_callback, env) : nullptr;
 
-            if (shared_data->call_as_constructor_callback.is_valid(env)) {
+            if (shared_data) {
                 env->PushLocalFrame(static_cast<jsize>(argument_count + 16));
 
                 JSObjectRef result;
@@ -478,9 +560,7 @@ namespace ujr {
     }
 
     bool JSJavaClassCallbacks::has_instance(
-        JSContextRef ctx,
-        JSClassRef js_class,
-        JSObjectRef constructor,
+        JSContextRef ctx, JSObjectRef constructor,
         JSValueRef possible_instance,
         JSValueRef *exception
     ) {
@@ -488,9 +568,10 @@ namespace ujr {
             using native_access::JNIJSCJSObjectHasInstanceCallback;
             using native_access::JNIJSCJSValue;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(constructor);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::has_instance_callback, env) : nullptr;
 
-            if (shared_data->has_instance_callback.is_valid(env)) {
+            if (shared_data) {
                 JSValueProtect(ctx, constructor);
                 JSValueProtect(ctx, possible_instance);
 
@@ -514,16 +595,17 @@ namespace ujr {
     }
 
     JSValueRef JSJavaClassCallbacks::convert_to_type(
-        JSContextRef ctx, JSClassRef js_class, JSObjectRef object, JSType type, JSValueRef *exception
+        JSContextRef ctx, JSObjectRef object, JSType type, JSValueRef *exception
     ) {
         return js_entry_guard(ctx, exception, [&](auto env) {
             using native_access::JNIJSCJSObjectConvertToTypeCallback;
             using native_access::JNIJSCJSValue;
             using native_access::JSType;
 
-            auto *shared_data = reinterpret_cast<const JSClassJavaSharedData *>(JSClassGetPrivate(js_class));
+            const auto *class_data = JSClassJavaSharedData::of_object(object);
+            const auto *shared_data = class_data ? class_data->find(&JSClassJavaSharedData::convert_to_type_callback, env) : nullptr;
 
-            if (shared_data->convert_to_type_callback.is_valid(env)) {
+            if (shared_data) {
                 JSValueProtect(ctx, object);
 
                 auto j_context = JSContext::wrap(env, ctx);

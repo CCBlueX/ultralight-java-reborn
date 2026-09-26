@@ -73,8 +73,14 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlRenderer_n
         ul_config.font_family_sans_serif = UlViewConfig::FONT_FAMILY_SANS_SERIF.get(env, j_config)
                                                .require_non_null_argument("config.fontFamilySansSerif")
                                                .to_utf16();
-        ul_config.user_agent
-            = UlViewConfig::USER_AGENT.get(env, j_config).require_non_null_argument("config.userAgent").to_utf16();
+        ul_config.display_id = static_cast<uint32_t>(UlViewConfig::DISPLAY_ID.get(env, j_config));
+        ul_config.enable_compositor = UlViewConfig::ENABLE_COMPOSITOR.get(env, j_config);
+
+        // Without a user agent, the one of Ultralight is kept
+        auto j_user_agent = UlViewConfig::USER_AGENT.get(env, j_config);
+        if (j_user_agent.is_valid()) {
+            ul_config.user_agent = j_user_agent.to_utf16();
+        }
 
         auto *renderer = reinterpret_cast<ultralight::Renderer *>(JNIUlRenderer::HANDLE.get(env, self));
 
@@ -105,6 +111,16 @@ JNIEXPORT void JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlRenderer_nati
 
         auto *renderer = reinterpret_cast<ultralight::Renderer *>(JNIUlRenderer::HANDLE.get(env, self));
         renderer->Update();
+    });
+}
+
+JNIEXPORT void JNICALL
+Java_net_janrupf_ujr_platform_jni_impl_JNIUlRenderer_nativeRefreshDisplay(JNIEnv *env, jobject self, jint display_id) {
+    ujr::jni_entry_guard(env, [&](auto env) {
+        using ujr::native_access::JNIUlRenderer;
+
+        auto *renderer = reinterpret_cast<ultralight::Renderer *>(JNIUlRenderer::HANDLE.get(env, self));
+        renderer->RefreshDisplay(static_cast<uint32_t>(display_id));
     });
 }
 

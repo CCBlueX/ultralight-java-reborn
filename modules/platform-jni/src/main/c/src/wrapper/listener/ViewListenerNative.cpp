@@ -10,6 +10,7 @@
 #include <Ultralight/View.h>
 
 #include <stdexcept>
+#include <utility>
 
 #include "ujr/util/JniEntryGuard.hpp"
 #include "ujr/View.hpp"
@@ -173,6 +174,57 @@ JNIEXPORT void JNICALL Java_net_janrupf_ujr_platform_jni_wrapper_listener_JNIUlV
     });
 }
 
+namespace {
+    /**
+     * A console message coming from Java, which has no JavaScript arguments.
+     */
+    class JavaConsoleMessage : public ultralight::ConsoleMessage {
+    private:
+        ultralight::MessageSource source_;
+        ultralight::MessageLevel level_;
+        ultralight::String message_;
+        uint32_t line_number_;
+        uint32_t column_number_;
+        ultralight::String source_id_;
+
+    public:
+        JavaConsoleMessage(
+            ultralight::MessageSource source,
+            ultralight::MessageLevel level,
+            ultralight::String message,
+            uint32_t line_number,
+            uint32_t column_number,
+            ultralight::String source_id
+        )
+            : source_(source)
+            , level_(level)
+            , message_(std::move(message))
+            , line_number_(line_number)
+            , column_number_(column_number)
+            , source_id_(std::move(source_id)) {}
+
+        [[nodiscard]] ultralight::MessageSource source() const override { return source_; }
+
+        [[nodiscard]] ultralight::MessageType type() const override { return ultralight::kMessageType_Log; }
+
+        [[nodiscard]] ultralight::MessageLevel level() const override { return level_; }
+
+        [[nodiscard]] ultralight::String message() const override { return message_; }
+
+        [[nodiscard]] uint32_t line_number() const override { return line_number_; }
+
+        [[nodiscard]] uint32_t column_number() const override { return column_number_; }
+
+        [[nodiscard]] ultralight::String source_id() const override { return source_id_; }
+
+        [[nodiscard]] JSContextRef argument_context() const override { return nullptr; }
+
+        [[nodiscard]] uint32_t num_arguments() const override { return 0; }
+
+        [[nodiscard]] JSValueRef argument_at(uint32_t) const override { return nullptr; }
+    };
+} // namespace
+
 JNIEXPORT void JNICALL
 Java_net_janrupf_ujr_platform_jni_wrapper_listener_JNIUlViewListenerNative_nativeOnAddConsoleMessage(
     JNIEnv *env,
@@ -219,6 +271,18 @@ Java_net_janrupf_ujr_platform_jni_wrapper_listener_JNIUlViewListenerNative_nativ
             ul_source = ultralight::MessageSource::kMessageSource_Security;
         } else if (source == UlMessageSource::CONTENT_BLOCKER.get(env)) {
             ul_source = ultralight::MessageSource::kMessageSource_ContentBlocker;
+        } else if (source == UlMessageSource::MEDIA.get(env)) {
+            ul_source = ultralight::MessageSource::kMessageSource_Media;
+        } else if (source == UlMessageSource::MEDIA_SOURCE.get(env)) {
+            ul_source = ultralight::MessageSource::kMessageSource_MediaSource;
+        } else if (source == UlMessageSource::WEBRTC.get(env)) {
+            ul_source = ultralight::MessageSource::kMessageSource_WebRTC;
+        } else if (source == UlMessageSource::ITP_DEBUG.get(env)) {
+            ul_source = ultralight::MessageSource::kMessageSource_ITPDebug;
+        } else if (source == UlMessageSource::PRIVATE_CLICK_MEASUREMENT.get(env)) {
+            ul_source = ultralight::MessageSource::kMessageSource_PrivateClickMeasurement;
+        } else if (source == UlMessageSource::PAYMENT_REQUEST.get(env)) {
+            ul_source = ultralight::MessageSource::kMessageSource_PaymentRequest;
         } else if (source == UlMessageSource::OTHER.get(env)) {
             ul_source = ultralight::MessageSource::kMessageSource_Other;
         } else {
@@ -241,8 +305,7 @@ Java_net_janrupf_ujr_platform_jni_wrapper_listener_JNIUlViewListenerNative_nativ
             throw std::runtime_error("Unknown message level");
         }
 
-        listener->OnAddConsoleMessage(
-            ul_view,
+        JavaConsoleMessage console_message(
             ul_source,
             ul_level,
             j_message.to_utf16(),
@@ -250,6 +313,8 @@ Java_net_janrupf_ujr_platform_jni_wrapper_listener_JNIUlViewListenerNative_nativ
             static_cast<uint32_t>(column_number),
             j_source_id.to_utf16()
         );
+
+        listener->OnAddConsoleMessage(ul_view, console_message);
     });
 }
 

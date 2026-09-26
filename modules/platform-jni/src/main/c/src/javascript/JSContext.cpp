@@ -1,4 +1,5 @@
 #include "ujr/javascript/JSContext.hpp"
+#include "ujr/javascript/JSJavaPrivateData.hpp"
 #include "net_janrupf_ujr_platform_jni_impl_javascript_JNIJSCJSClass_native_access.hpp"
 #include "net_janrupf_ujr_platform_jni_impl_javascript_JNIJSCJSContext.h"
 #include "net_janrupf_ujr_platform_jni_impl_javascript_JNIJSCJSContext_native_access.hpp"
@@ -170,7 +171,9 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJ
             js_class = reinterpret_cast<JSClassRef>(JNIJSCJSClass::HANDLE.get(env, clazz));
         }
 
-        auto js_object = JSObjectMake(context, js_class, nullptr);
+        // Callbacks find the Java side of the class through the private data of the object
+        auto *class_data = const_cast<ujr::JSClassJavaSharedData *>(ujr::JSClassJavaSharedData::of_class(js_class));
+        auto js_object = JSObjectMake(context, js_class, class_data);
 
         auto j_object = ujr::JSObject::wrap(env, context, js_object).leak();
 
