@@ -5,11 +5,25 @@
 
 #include "ujr/wrapper/buffer/Buffer.hpp"
 
+#include <unordered_set>
+
 namespace ujr {
+    namespace {
+        std::unordered_set<const ultralight::Surface *> jni_surfaces;
+    } // namespace
+
     Surface::Surface(JniGlobalRef<jobject> j_surface)
         : j_surface(std::move(j_surface))
         , j_locked_pixels(JniGlobalRef<jobject>::null())
-        , locked_pixels(nullptr) {}
+        , locked_pixels(nullptr) {
+        jni_surfaces.insert(this);
+    }
+
+    Surface::~Surface() { jni_surfaces.erase(this); }
+
+    Surface *Surface::from(ultralight::Surface *surface) {
+        return jni_surfaces.count(surface) ? static_cast<Surface *>(surface) : nullptr;
+    }
 
     const JniGlobalRef<jobject> &Surface::get_j_surface() const { return j_surface; }
 
@@ -56,6 +70,12 @@ namespace ujr {
         locked_pixels.reset();
         native_access::JNIUlDelegatedBuffer::RELEASE.invoke(env, j_locked_pixels);
         j_locked_pixels = JniGlobalRef<jobject>::null();
+    }
+
+    bool Surface::Scroll(const ultralight::IntRect &rect, int dx, int dy) {
+        // Only the pixels Ultralight paints into are shifted, the Java side copies the dirty bounds again
+        ShiftPixels(locked_pixels->data(), row_bytes(), rect, dx, dy);
+        return false;
     }
 
     void Surface::Resize(uint32_t width, uint32_t height) {

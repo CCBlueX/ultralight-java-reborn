@@ -5,6 +5,7 @@ import net.janrupf.ujr.api.gpu.UlCommandList;
 import net.janrupf.ujr.api.gpu.UlRenderBuffer;
 import net.janrupf.ujr.api.gpu.UlVertexBufferFormat;
 import net.janrupf.ujr.api.gpu.UltralightGPUDriver;
+import net.janrupf.ujr.api.math.IntRect;
 import net.janrupf.ujr.platform.jni.ffi.NativeAccess;
 import net.janrupf.ujr.platform.jni.impl.JNIUlBitmap;
 
@@ -46,13 +47,13 @@ public class JNIUlGPUDriver {
     }
 
     @NativeAccess
-    public void createTexture(int textureId, JNIUlBitmap bitmap) {
-        delegate.createTexture(textureId, new UltralightBitmap(bitmap));
+    public void createTexture(int textureId, JNIUlBitmap bitmap, int flags) {
+        delegate.createTexture(textureId, new UltralightBitmap(bitmap), flags);
     }
 
     @NativeAccess
-    public void updateTexture(int textureId, JNIUlBitmap bitmap) {
-        delegate.updateTexture(textureId, new UltralightBitmap(bitmap));
+    public void updateTexture(int textureId, JNIUlBitmap bitmap, int left, int top, int right, int bottom) {
+        delegate.updateTexture(textureId, new UltralightBitmap(bitmap), new IntRect(left, top, right, bottom));
     }
 
     @NativeAccess

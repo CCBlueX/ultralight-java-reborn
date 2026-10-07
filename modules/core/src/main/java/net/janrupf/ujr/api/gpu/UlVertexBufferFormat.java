@@ -13,7 +13,13 @@ public enum UlVertexBufferFormat {
      * Used for quads, 140 bytes: position (2 floats), color (4 unsigned bytes), texture coordinates (2 floats),
      * object coordinates (2 floats) and seven data vectors (4 floats each).
      */
-    F2_UB4_F2_F2_F28(140);
+    F2_UB4_F2_F2_F28(140),
+
+    /**
+     * Used for Photon cells, 16 bytes: position (2 floats), the address of the cell header in the index page and the
+     * slot of the path in the constants page (2 unsigned ints).
+     */
+    F2_UI2(16);
 
     private final int stride;
 

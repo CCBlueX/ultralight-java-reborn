@@ -1,6 +1,5 @@
 package net.janrupf.ujr.platform.jni.impl;
 
-import net.janrupf.ujr.api.UltralightView;
 import net.janrupf.ujr.api.config.UlViewConfig;
 import net.janrupf.ujr.core.platform.abstraction.UlRenderer;
 import net.janrupf.ujr.core.platform.abstraction.UlSession;
@@ -63,13 +62,6 @@ public class JNIUlRenderer implements UlRenderer {
     }
 
     private native void nativeRender();
-
-    @Override
-    public void renderOnly(UltralightView[] views) {
-        nativeRenderOnly(views);
-    }
-
-    private native void nativeRenderOnly(UltralightView[] views);
 
     @Override
     public void purgeMemory() {

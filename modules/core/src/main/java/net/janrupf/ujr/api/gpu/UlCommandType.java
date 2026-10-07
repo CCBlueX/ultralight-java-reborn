@@ -12,5 +12,11 @@ public enum UlCommandType {
     /**
      * Draws geometry into the render buffer.
      */
-    DRAW_GEOMETRY
+    DRAW_GEOMETRY,
+
+    /**
+     * Submits the pending work, before drawing into a render buffer that earlier draws of the list sampled. Its state
+     * holds nothing.
+     */
+    FLUSH
 }

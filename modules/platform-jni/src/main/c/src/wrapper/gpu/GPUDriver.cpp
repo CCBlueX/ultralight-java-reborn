@@ -6,27 +6,32 @@
 #include "ujr/Bitmap.hpp"
 
 // The Java side reads the commands directly from memory, see UlCommand and UlGPUState
-static_assert(sizeof(ultralight::Command) == 794);
+static_assert(sizeof(ultralight::Command) == 833);
 static_assert(offsetof(ultralight::Command, gpu_state) == 1);
-static_assert(offsetof(ultralight::Command, geometry_id) == 782);
-static_assert(offsetof(ultralight::Command, indices_count) == 786);
-static_assert(offsetof(ultralight::Command, indices_offset) == 790);
+static_assert(offsetof(ultralight::Command, geometry_id) == 821);
+static_assert(offsetof(ultralight::Command, indices_count) == 825);
+static_assert(offsetof(ultralight::Command, indices_offset) == 829);
 static_assert(offsetof(ultralight::GPUState, viewport_width) == 0);
 static_assert(offsetof(ultralight::GPUState, viewport_height) == 4);
 static_assert(offsetof(ultralight::GPUState, transform) == 8);
 static_assert(offsetof(ultralight::GPUState, enable_texturing) == 72);
 static_assert(offsetof(ultralight::GPUState, enable_blend) == 73);
-static_assert(offsetof(ultralight::GPUState, shader_type) == 74);
-static_assert(offsetof(ultralight::GPUState, render_buffer_id) == 75);
-static_assert(offsetof(ultralight::GPUState, texture_1_id) == 79);
-static_assert(offsetof(ultralight::GPUState, texture_2_id) == 83);
-static_assert(offsetof(ultralight::GPUState, texture_3_id) == 87);
-static_assert(offsetof(ultralight::GPUState, uniform_scalar) == 91);
-static_assert(offsetof(ultralight::GPUState, uniform_vector) == 123);
-static_assert(offsetof(ultralight::GPUState, clip_size) == 251);
-static_assert(offsetof(ultralight::GPUState, clip) == 252);
-static_assert(offsetof(ultralight::GPUState, enable_scissor) == 764);
-static_assert(offsetof(ultralight::GPUState, scissor_rect) == 765);
+static_assert(offsetof(ultralight::GPUState, blend_src_factor) == 74);
+static_assert(offsetof(ultralight::GPUState, blend_dst_factor) == 75);
+static_assert(offsetof(ultralight::GPUState, blend_equation) == 76);
+static_assert(offsetof(ultralight::GPUState, shader_type) == 77);
+static_assert(offsetof(ultralight::GPUState, render_buffer_id) == 78);
+static_assert(offsetof(ultralight::GPUState, texture_1_id) == 82);
+static_assert(offsetof(ultralight::GPUState, texture_2_id) == 86);
+static_assert(offsetof(ultralight::GPUState, texture_3_id) == 90);
+static_assert(offsetof(ultralight::GPUState, texture_4_id) == 94);
+static_assert(offsetof(ultralight::GPUState, uniform_integer) == 98);
+static_assert(offsetof(ultralight::GPUState, uniform_scalar) == 130);
+static_assert(offsetof(ultralight::GPUState, uniform_vector) == 162);
+static_assert(offsetof(ultralight::GPUState, clip_size) == 290);
+static_assert(offsetof(ultralight::GPUState, clip) == 291);
+static_assert(offsetof(ultralight::GPUState, enable_scissor) == 803);
+static_assert(offsetof(ultralight::GPUState, scissor_rect) == 804);
 
 namespace ujr {
     namespace {
@@ -59,20 +64,33 @@ namespace ujr {
         return static_cast<uint32_t>(JNIUlGPUDriver::NEXT_TEXTURE_ID.invoke(env, j_driver));
     }
 
-    void GPUDriver::CreateTexture(uint32_t texture_id, ultralight::RefPtr<ultralight::Bitmap> bitmap) {
+    void GPUDriver::CreateTexture(uint32_t texture_id, ultralight::RefPtr<ultralight::Bitmap> bitmap, uint32_t flags) {
         using native_access::JNIUlGPUDriver;
 
         auto env = JniEnv::require_existing_from_thread();
         auto j_bitmap = Bitmap::wrap(env, std::move(bitmap));
-        JNIUlGPUDriver::CREATE_TEXTURE.invoke(env, j_driver, static_cast<jint>(texture_id), j_bitmap);
+        JNIUlGPUDriver::CREATE_TEXTURE.invoke(
+            env, j_driver, static_cast<jint>(texture_id), j_bitmap, static_cast<jint>(flags)
+        );
     }
 
-    void GPUDriver::UpdateTexture(uint32_t texture_id, ultralight::RefPtr<ultralight::Bitmap> bitmap) {
+    void GPUDriver::UpdateTexture(
+        uint32_t texture_id, ultralight::RefPtr<ultralight::Bitmap> bitmap, const ultralight::IntRect &dirty_rect
+    ) {
         using native_access::JNIUlGPUDriver;
 
         auto env = JniEnv::require_existing_from_thread();
         auto j_bitmap = Bitmap::wrap(env, std::move(bitmap));
-        JNIUlGPUDriver::UPDATE_TEXTURE.invoke(env, j_driver, static_cast<jint>(texture_id), j_bitmap);
+        JNIUlGPUDriver::UPDATE_TEXTURE.invoke(
+            env,
+            j_driver,
+            static_cast<jint>(texture_id),
+            j_bitmap,
+            static_cast<jint>(dirty_rect.left),
+            static_cast<jint>(dirty_rect.top),
+            static_cast<jint>(dirty_rect.right),
+            static_cast<jint>(dirty_rect.bottom)
+        );
     }
 
     void GPUDriver::DestroyTexture(uint32_t texture_id) {

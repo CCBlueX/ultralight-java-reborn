@@ -154,21 +154,14 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlView_nativ
         }
 
         // Test if the surface is a JNI surface
-        auto *jni_surface = dynamic_cast<ujr::Surface *>(surface);
+        auto *jni_surface = ujr::Surface::from(surface);
         if (jni_surface) {
             // Surface is a JNI surface, return the Java object
             return jni_surface->get_j_surface();
         }
 
-        // We have to construct a Java surface wrapper
-        auto jni_surface_factory_ref = ujr::JniLocalRef<jobject>::null(env);
-
-        // Special case: Bitmap surface
-        if (auto *b_surface = dynamic_cast<ultralight::BitmapSurface *>(surface); b_surface != nullptr) {
-            jni_surface_factory_ref = JNIUlBitmapSurface::CLAZZ.alloc_object(env);
-        } else {
-            jni_surface_factory_ref = JNIUlSurfaceNative::CLAZZ.alloc_object(env);
-        }
+        // Without a surface factory of Java, Ultralight creates bitmap surfaces
+        auto jni_surface_factory_ref = JNIUlBitmapSurface::CLAZZ.alloc_object(env);
         JNIUlSurfaceNative::HANDLE.set(env, jni_surface_factory_ref, reinterpret_cast<jlong>(surface));
 
         return jni_surface_factory_ref.leak();

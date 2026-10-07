@@ -41,11 +41,13 @@ public class UlConfig {
     public UlFontHinting fontHinting = UlFontHinting.NORMAL;
 
     /**
-     * The gamma to use when compositing font glyphs, change this value to adjust contrast (Adobe
-     * and Apple prefer 1.8, others may prefer 2.2).
+     * The gamma to use when compositing font glyphs. Lower values render text heavier, higher
+     * values render it lighter with more edge contrast (Adobe and Apple prefer 1.8).
+     * <p>
+     * 0 uses the gamma of the font profile, 2.2 by default.
      */
     @Native
-    public double fontGamma = 1.8;
+    public double fontGamma = 0.0;
 
     /**
      * Default user stylesheet. You should set this to your own custom CSS string to define default
@@ -62,34 +64,43 @@ public class UlConfig {
     public boolean forceRepaint = false;
 
     /**
-     * When a CSS animation is active, the amount of time (in seconds) to wait before triggering
-     * another repaint. Default is 60 Hz.
+     * Whether accelerated views draw paths analytically (Photon) instead of tessellating them to
+     * triangles, which keeps their edges crisp under any transform.
+     * <p>
+     * The GPU driver has to support the Photon shaders, see
+     * {@link net.janrupf.ujr.api.gpu.UlShaderType#FILL_PHOTON}.
      */
     @Native
-    public double animationTimerDelay = 1.0 / 60.0;
+    public boolean enablePhoton = true;
 
     /**
-     * When a smooth scroll animation is active, the amount of time (in seconds) to wait before
-     * triggering another repaint. Default is 60 Hz.
+     * Whether text and color emoji render analytically as well, from {@link #photonTextMinPx} on.
+     * Ignored without {@link #enablePhoton}.
      */
     @Native
-    public double scrollTimerDelay = 1.0 / 60.0;
+    public boolean enablePhotonText = true;
 
     /**
-     * The amount of time (in seconds) to wait before running the recycler (will attempt to return
-     * excess memory back to the system).
+     * The smallest glyph size, in pixels, that renders analytically. Smaller glyphs use the glyph
+     * atlas, 0 renders all text analytically.
      */
     @Native
-    public double recycleDelay = 4.0;
+    public long photonTextMinPx = 16;
+
+    /**
+     * The interval (in seconds) at which the library recycles internal caches and reclaims memory,
+     * 0 disables it.
+     */
+    @Native
+    public double recycleDelay = 0.5;
 
     /**
      * Size of WebCore's memory cache in bytes.
      * <p>
-     * You should increase this if you anticipate handling pages with large resources, Safari
-     * typically uses 128+ MiB for its cache.
+     * It caches decoded images, compiled JavaScript and the like.
      */
     @Native
-    public long memoryCacheSize = 64 * 1024 * 1024;
+    public long memoryCacheSize = 256 * 1024 * 1024;
 
     /**
      * Number of pages to keep in the cache. Defaults to 0 (none).
@@ -116,7 +127,7 @@ public class UlConfig {
      * heaps start with a smaller initial value.
      */
     @Native
-    public long minLargeHeapSize = 32 * 1024 * 1024;
+    public long minLargeHeapSize = 0;
 
     /**
      * The minimum size of small VM heaps in JavaScriptCore. Set this to a lower value to make these

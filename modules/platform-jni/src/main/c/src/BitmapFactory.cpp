@@ -17,6 +17,22 @@ namespace {
             return ultralight::BitmapFormat::A8_UNORM;
         } else if (j_format == UlBitmapFormat::BGRA8_UNORM_SRGB.get(j_format.associated_env())) {
             return ultralight::BitmapFormat::BGRA8_UNORM_SRGB;
+        } else if (j_format == UlBitmapFormat::RG8_UNORM.get(j_format.associated_env())) {
+            return ultralight::BitmapFormat::RG8_UNORM;
+        } else if (j_format == UlBitmapFormat::BC1_UNORM.get(j_format.associated_env())) {
+            return ultralight::BitmapFormat::BC1_UNORM;
+        } else if (j_format == UlBitmapFormat::BC2_UNORM.get(j_format.associated_env())) {
+            return ultralight::BitmapFormat::BC2_UNORM;
+        } else if (j_format == UlBitmapFormat::BC3_UNORM.get(j_format.associated_env())) {
+            return ultralight::BitmapFormat::BC3_UNORM;
+        } else if (j_format == UlBitmapFormat::BC7_UNORM.get(j_format.associated_env())) {
+            return ultralight::BitmapFormat::BC7_UNORM;
+        } else if (j_format == UlBitmapFormat::RGBA16F.get(j_format.associated_env())) {
+            return ultralight::BitmapFormat::RGBA16F;
+        } else if (j_format == UlBitmapFormat::RGBA16UI.get(j_format.associated_env())) {
+            return ultralight::BitmapFormat::RGBA16UI;
+        } else if (j_format == UlBitmapFormat::RGBA32F.get(j_format.associated_env())) {
+            return ultralight::BitmapFormat::RGBA32F;
         } else {
             throw std::runtime_error("Unknown bitmap format");
         }

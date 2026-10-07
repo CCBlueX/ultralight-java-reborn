@@ -23,9 +23,11 @@ namespace ujr {
 
         uint32_t NextTextureId() final;
 
-        void CreateTexture(uint32_t texture_id, ultralight::RefPtr<ultralight::Bitmap> bitmap) final;
+        void CreateTexture(uint32_t texture_id, ultralight::RefPtr<ultralight::Bitmap> bitmap, uint32_t flags) final;
 
-        void UpdateTexture(uint32_t texture_id, ultralight::RefPtr<ultralight::Bitmap> bitmap) final;
+        void UpdateTexture(
+            uint32_t texture_id, ultralight::RefPtr<ultralight::Bitmap> bitmap, const ultralight::IntRect &dirty_rect
+        ) final;
 
         void DestroyTexture(uint32_t texture_id) final;
 

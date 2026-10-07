@@ -108,28 +108,41 @@ public class UltralightConfigBuilder extends UlConfig {
     }
 
     /**
-     * Sets the animation timer delay.
+     * Sets whether paths render analytically.
      * <p>
-     * See {@link UlConfig#animationTimerDelay} for more information.
+     * See {@link UlConfig#enablePhoton} for more information.
      *
-     * @param animationTimerDelay the animation timer delay to use
+     * @param enablePhoton whether paths render analytically
      * @return this
      */
-    public UltralightConfigBuilder animationTimerDelay(double animationTimerDelay) {
-        this.animationTimerDelay = animationTimerDelay;
+    public UltralightConfigBuilder enablePhoton(boolean enablePhoton) {
+        this.enablePhoton = enablePhoton;
         return this;
     }
 
     /**
-     * Sets the scroll timer delay.
+     * Sets whether text renders analytically.
      * <p>
-     * See {@link UlConfig#scrollTimerDelay} for more information.
+     * See {@link UlConfig#enablePhotonText} for more information.
      *
-     * @param scrollTimerDelay the scroll timer delay to use
+     * @param enablePhotonText whether text renders analytically
      * @return this
      */
-    public UltralightConfigBuilder scrollTimerDelay(double scrollTimerDelay) {
-        this.scrollTimerDelay = scrollTimerDelay;
+    public UltralightConfigBuilder enablePhotonText(boolean enablePhotonText) {
+        this.enablePhotonText = enablePhotonText;
+        return this;
+    }
+
+    /**
+     * Sets the smallest glyph size that renders analytically.
+     * <p>
+     * See {@link UlConfig#photonTextMinPx} for more information.
+     *
+     * @param photonTextMinPx the size in pixels
+     * @return this
+     */
+    public UltralightConfigBuilder photonTextMinPx(long photonTextMinPx) {
+        this.photonTextMinPx = photonTextMinPx;
         return this;
     }
 

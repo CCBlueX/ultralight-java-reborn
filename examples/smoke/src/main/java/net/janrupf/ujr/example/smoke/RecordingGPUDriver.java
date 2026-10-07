@@ -5,8 +5,10 @@ import net.janrupf.ujr.api.gpu.UlCommand;
 import net.janrupf.ujr.api.gpu.UlCommandList;
 import net.janrupf.ujr.api.gpu.UlCommandType;
 import net.janrupf.ujr.api.gpu.UlRenderBuffer;
+import net.janrupf.ujr.api.gpu.UlTextureFlags;
 import net.janrupf.ujr.api.gpu.UlVertexBufferFormat;
 import net.janrupf.ujr.api.gpu.UltralightGPUDriver;
+import net.janrupf.ujr.api.math.IntRect;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -42,18 +44,23 @@ final class RecordingGPUDriver implements UltralightGPUDriver {
     }
 
     @Override
-    public void createTexture(int textureId, UltralightBitmap bitmap) {
+    public void createTexture(int textureId, UltralightBitmap bitmap, int flags) {
         check(textures.add(textureId), "texture " + textureId + " was created twice");
+        check(bitmap.width() > 0 && bitmap.height() > 0, "texture " + textureId + " has no size");
+        check((flags & UlTextureFlags.ANTIALIASED) == 0, "texture " + textureId + " is antialiased");
 
-        if (!bitmap.isEmpty()) {
-            check(bitmap.width() > 0 && bitmap.height() > 0, "texture " + textureId + " has no size");
+        if ((flags & UlTextureFlags.RENDER_TARGET) == 0) {
             uploadedTextures++;
         }
     }
 
     @Override
-    public void updateTexture(int textureId, UltralightBitmap bitmap) {
+    public void updateTexture(int textureId, UltralightBitmap bitmap, IntRect dirtyRect) {
         check(textures.contains(textureId), "texture " + textureId + " was updated before it was created");
+        check(dirtyRect.getLeft() >= 0 && dirtyRect.getTop() >= 0 && dirtyRect.getRight() <= bitmap.width() &&
+                        dirtyRect.getBottom() <= bitmap.height() && dirtyRect.getLeft() < dirtyRect.getRight() &&
+                        dirtyRect.getTop() < dirtyRect.getBottom(),
+                "texture " + textureId + " was updated outside of its bitmap");
     }
 
     @Override
@@ -107,6 +114,10 @@ final class RecordingGPUDriver implements UltralightGPUDriver {
     public void updateCommandList(UlCommandList commands) {
         for (int i = 0; i < commands.size(); i++) {
             UlCommand command = commands.get(i);
+            if (command.type() == UlCommandType.FLUSH) {
+                continue;
+            }
+
             int renderBufferId = command.state().renderBufferId();
             check(renderBufferId == 0 || renderBuffers.containsKey(renderBufferId),
                     "command " + i + " targets the unknown render buffer " + renderBufferId);

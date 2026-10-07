@@ -15,17 +15,27 @@ public final class UlGPUState {
     private static final int TRANSFORM = 8;
     private static final int ENABLE_TEXTURING = 72;
     private static final int ENABLE_BLEND = 73;
-    private static final int SHADER_TYPE = 74;
-    private static final int RENDER_BUFFER_ID = 75;
-    private static final int TEXTURE_1_ID = 79;
-    private static final int TEXTURE_2_ID = 83;
-    private static final int TEXTURE_3_ID = 87;
-    private static final int UNIFORM_SCALAR = 91;
-    private static final int UNIFORM_VECTOR = 123;
-    private static final int CLIP_SIZE = 251;
-    private static final int CLIP = 252;
-    private static final int ENABLE_SCISSOR = 764;
-    private static final int SCISSOR_RECT = 765;
+    private static final int BLEND_SRC_FACTOR = 74;
+    private static final int BLEND_DST_FACTOR = 75;
+    private static final int BLEND_EQUATION = 76;
+    private static final int SHADER_TYPE = 77;
+    private static final int RENDER_BUFFER_ID = 78;
+    private static final int TEXTURE_1_ID = 82;
+    private static final int TEXTURE_2_ID = 86;
+    private static final int TEXTURE_3_ID = 90;
+    private static final int TEXTURE_4_ID = 94;
+    private static final int UNIFORM_INTEGER = 98;
+    private static final int UNIFORM_SCALAR = 130;
+    private static final int UNIFORM_VECTOR = 162;
+    private static final int CLIP_SIZE = 290;
+    private static final int CLIP = 291;
+    private static final int ENABLE_SCISSOR = 803;
+    private static final int SCISSOR_RECT = 804;
+
+    /**
+     * Number of uniform integers.
+     */
+    public static final int UNIFORM_INTEGERS = 8;
 
     /**
      * Number of uniform scalars.
@@ -88,12 +98,41 @@ public final class UlGPUState {
     }
 
     /**
-     * Retrieves whether to blend, with premultiplied alpha.
+     * Retrieves whether to blend, with {@link #blendSrcFactor()}, {@link #blendDstFactor()} and
+     * {@link #blendEquation()}.
      *
      * @return true to blend
      */
     public boolean enableBlend() {
         return buffer.get(offset + ENABLE_BLEND) != 0;
+    }
+
+    /**
+     * Retrieves the factor of the color the shader outputs, {@link UlBlendFactor#ONE} for premultiplied alpha.
+     *
+     * @return the factor
+     */
+    public UlBlendFactor blendSrcFactor() {
+        return UlBlendFactor.values()[buffer.get(offset + BLEND_SRC_FACTOR)];
+    }
+
+    /**
+     * Retrieves the factor of the color in the render buffer, {@link UlBlendFactor#INV_SRC_ALPHA} for premultiplied
+     * alpha.
+     *
+     * @return the factor
+     */
+    public UlBlendFactor blendDstFactor() {
+        return UlBlendFactor.values()[buffer.get(offset + BLEND_DST_FACTOR)];
+    }
+
+    /**
+     * Retrieves how the weighted colors are combined.
+     *
+     * @return the equation
+     */
+    public UlBlendEquation blendEquation() {
+        return UlBlendEquation.values()[buffer.get(offset + BLEND_EQUATION)];
     }
 
     /**
@@ -139,6 +178,25 @@ public final class UlGPUState {
      */
     public int texture3Id() {
         return buffer.getInt(offset + TEXTURE_3_ID);
+    }
+
+    /**
+     * Retrieves the fourth texture, the integer index page of Photon draws.
+     *
+     * @return the id of the texture, or 0 if none
+     */
+    public int texture4Id() {
+        return buffer.getInt(offset + TEXTURE_4_ID);
+    }
+
+    /**
+     * Retrieves a uniform integer.
+     *
+     * @param index the index of the integer
+     * @return the integer
+     */
+    public int uniformInteger(int index) {
+        return buffer.getInt(offset + UNIFORM_INTEGER + checkIndex(index, UNIFORM_INTEGERS) * 4);
     }
 
     /**

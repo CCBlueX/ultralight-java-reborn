@@ -22,5 +22,10 @@ public enum UlMessageSource {
     WEBRTC,
     ITP_DEBUG,
     PRIVATE_CLICK_MEASUREMENT,
-    PAYMENT_REQUEST
+    PAYMENT_REQUEST,
+
+    /**
+     * Diagnostics of the JavaScript, DOM and data binding APIs.
+     */
+    NATIVE_API
 }

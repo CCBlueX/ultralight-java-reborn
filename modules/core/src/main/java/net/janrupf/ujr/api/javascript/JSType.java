@@ -37,5 +37,10 @@ public enum JSType {
     /**
      * A primitive symbol value.
      */
-    SYMBOL
+    SYMBOL,
+
+    /**
+     * A primitive BigInt value.
+     */
+    BIGINT
 }

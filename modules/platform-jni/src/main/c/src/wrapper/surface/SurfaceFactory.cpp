@@ -19,7 +19,7 @@ namespace ujr {
     void SurfaceFactory::DestroySurface(ultralight::Surface *surface) {
         auto env = JniEnv::require_existing_from_thread();
 
-        auto *ujr_surface = dynamic_cast<Surface *>(surface);
+        auto *ujr_surface = Surface::from(surface);
         if (ujr_surface) {
             native_access::JNIUlSurfaceFactory::DESTROY_SURFACE
                 .invoke(env, j_surface_factory, ujr_surface->get_j_surface().get());

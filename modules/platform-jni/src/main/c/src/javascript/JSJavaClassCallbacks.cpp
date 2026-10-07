@@ -635,6 +635,9 @@ namespace ujr {
                     case kJSTypeSymbol:
                         j_type = JSType::SYMBOL.get(env);
                         break;
+                    case kJSTypeBigInt:
+                        j_type = JSType::BIGINT.get(env);
+                        break;
                 }
 
                 auto j_result = JNIJSCJSObjectConvertToTypeCallback::CONVERT_TO_TYPE

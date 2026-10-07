@@ -8,9 +8,9 @@ import java.nio.ByteBuffer;
 public final class UlCommand {
     private static final int COMMAND_TYPE = 0;
     private static final int GPU_STATE = 1;
-    private static final int GEOMETRY_ID = 782;
-    private static final int INDICES_COUNT = 786;
-    private static final int INDICES_OFFSET = 790;
+    private static final int GEOMETRY_ID = 821;
+    private static final int INDICES_COUNT = 825;
+    private static final int INDICES_OFFSET = 829;
 
     private final ByteBuffer buffer;
     private final int offset;

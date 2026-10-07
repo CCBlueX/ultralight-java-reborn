@@ -6,7 +6,7 @@
 # downloaded.
 set(ULTRALIGHT_SDK "$ENV{ULTRALIGHT_SDK}" CACHE FILEPATH "Ultralight SDK archive (.7z) or extracted directory")
 
-set(ULTRALIGHT_VERSION "1.4.0")
+set(ULTRALIGHT_VERSION "2.0.0-beta.2")
 
 # Set the architecture information for ultralight
 set(ULTRALIGHT_ARCH "" CACHE STRING "Override the Ultralight architecture (x64 or arm64)")

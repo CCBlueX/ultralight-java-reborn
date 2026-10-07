@@ -46,6 +46,9 @@ Java_net_janrupf_ujr_platform_jni_impl_javascript_JNIJSCJSValue_nativeGetType(JN
             case kJSTypeSymbol:
                 j_type = JSType::SYMBOL.get(env);
                 break;
+            case kJSTypeBigInt:
+                j_type = JSType::BIGINT.get(env);
+                break;
         }
 
         return j_type.leak();

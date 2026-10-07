@@ -1,6 +1,5 @@
 package net.janrupf.ujr.core.platform.abstraction;
 
-import net.janrupf.ujr.api.UltralightView;
 import net.janrupf.ujr.api.config.UlViewConfig;
 
 import java.net.InetAddress;
@@ -17,8 +16,6 @@ public interface UlRenderer {
     void refreshDisplay(int displayId);
 
     void render();
-
-    void renderOnly(UltralightView[] views);
 
     void purgeMemory();
 

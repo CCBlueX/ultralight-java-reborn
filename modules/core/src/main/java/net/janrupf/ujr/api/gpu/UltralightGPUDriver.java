@@ -1,6 +1,7 @@
 package net.janrupf.ujr.api.gpu;
 
 import net.janrupf.ujr.api.bitmap.UltralightBitmap;
+import net.janrupf.ujr.api.math.IntRect;
 
 import java.nio.ByteBuffer;
 
@@ -38,20 +39,23 @@ public interface UltralightGPUDriver {
     /**
      * Creates a texture.
      * <p>
-     * An empty bitmap means the texture is the target of a render buffer, sized like the bitmap.
+     * A render target, see {@link UlTextureFlags#RENDER_TARGET}, gets a bitmap with its size and format but no
+     * pixels.
      *
      * @param textureId the id of the texture
      * @param bitmap    the content of the texture
+     * @param flags     the {@link UlTextureFlags} of the texture
      */
-    void createTexture(int textureId, UltralightBitmap bitmap);
+    void createTexture(int textureId, UltralightBitmap bitmap, int flags);
 
     /**
      * Replaces the content of a texture.
      *
      * @param textureId the id of the texture
-     * @param bitmap    the new content of the texture
+     * @param bitmap    the whole new content of the texture
+     * @param dirtyRect the part that changed, which is enough to upload
      */
-    void updateTexture(int textureId, UltralightBitmap bitmap);
+    void updateTexture(int textureId, UltralightBitmap bitmap, IntRect dirtyRect);
 
     /**
      * Destroys a texture.

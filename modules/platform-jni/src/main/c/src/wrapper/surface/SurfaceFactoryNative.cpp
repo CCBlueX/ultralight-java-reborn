@@ -20,15 +20,8 @@ Java_net_janrupf_ujr_platform_jni_wrapper_surface_JNIUlSurfaceFactoryNative_nati
             = reinterpret_cast<ultralight::SurfaceFactory *>(JNIUlSurfaceFactoryNative::HANDLE.get(env, self));
         auto *ul_surface = surface->CreateSurface(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-        auto j_ul_surface = ujr::JniLocalRef<jobject>::null(env);
-
-        // Special case: Bitmap surface
-        if (auto *b_surface = dynamic_cast<ultralight::BitmapSurface *>(surface); b_surface != nullptr) {
-            j_ul_surface = JNIUlBitmapSurface::CLAZZ.alloc_object(env);
-        } else {
-            j_ul_surface = JNIUlSurfaceNative::CLAZZ.alloc_object(env);
-        }
-
+        // The only native surface factory is the default one of Ultralight, which creates bitmap surfaces
+        auto j_ul_surface = JNIUlBitmapSurface::CLAZZ.alloc_object(env);
         JNIUlSurfaceNative::HANDLE.set(env, j_ul_surface, reinterpret_cast<jlong>(ul_surface));
 
         return j_ul_surface.leak();

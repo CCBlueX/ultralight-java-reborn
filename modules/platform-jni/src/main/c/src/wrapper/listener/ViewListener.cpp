@@ -268,6 +268,9 @@ namespace ujr {
             case ultralight::kMessageSource_Other:
                 j_source = UlMessageSource::OTHER.get(env);
                 break;
+            case ultralight::kMessageSource_NativeAPI:
+                j_source = UlMessageSource::NATIVE_API.get(env);
+                break;
         }
 
         // Translate the level

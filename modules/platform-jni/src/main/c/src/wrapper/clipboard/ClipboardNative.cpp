@@ -1,6 +1,7 @@
 #include "net_janrupf_ujr_platform_jni_wrapper_clipboard_JNIUlClipboardNative.h"
 #include "net_janrupf_ujr_platform_jni_wrapper_clipboard_JNIUlClipboardNative_native_access.hpp"
 
+#include <Ultralight/ClipboardData.h>
 #include <Ultralight/platform/Clipboard.h>
 
 #include "ujr/util/JniEntryGuard.hpp"
@@ -24,7 +25,7 @@ JNIEXPORT jstring JNICALL Java_net_janrupf_ujr_platform_jni_wrapper_clipboard_JN
         using ujr::native_access::JNIUlClipboardNative;
 
         auto *clipboard = reinterpret_cast<ultralight::Clipboard *>(JNIUlClipboardNative::HANDLE.get(env, self));
-        return ujr::JniLocalRef<jstring>::from_utf16(env, clipboard->ReadPlainText().utf16()).leak();
+        return ujr::JniLocalRef<jstring>::from_utf16(env, clipboard->Read()->AsText().utf16()).leak();
     });
 }
 
@@ -37,6 +38,6 @@ JNIEXPORT void JNICALL Java_net_janrupf_ujr_platform_jni_wrapper_clipboard_JNIUl
         auto j_text = env.wrap_argument(text);
 
         auto *clipboard = reinterpret_cast<ultralight::Clipboard *>(JNIUlClipboardNative::HANDLE.get(env, self));
-        clipboard->WritePlainText(j_text.to_utf16());
+        clipboard->Write(ultralight::ClipboardData::Create(j_text.to_utf16()));
     });
 }

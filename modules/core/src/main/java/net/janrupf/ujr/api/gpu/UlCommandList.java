@@ -12,7 +12,7 @@ public final class UlCommandList {
     /**
      * Size of a command in bytes, the layout of {@code ultralight::Command}.
      */
-    public static final int COMMAND_SIZE = 794;
+    public static final int COMMAND_SIZE = 833;
 
     private final ByteBuffer buffer;
     private final int size;

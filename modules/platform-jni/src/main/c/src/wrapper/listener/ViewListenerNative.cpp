@@ -285,6 +285,8 @@ Java_net_janrupf_ujr_platform_jni_wrapper_listener_JNIUlViewListenerNative_nativ
             ul_source = ultralight::MessageSource::kMessageSource_PaymentRequest;
         } else if (source == UlMessageSource::OTHER.get(env)) {
             ul_source = ultralight::MessageSource::kMessageSource_Other;
+        } else if (source == UlMessageSource::NATIVE_API.get(env)) {
+            ul_source = ultralight::MessageSource::kMessageSource_NativeAPI;
         } else {
             throw std::runtime_error("Unknown message source");
         }

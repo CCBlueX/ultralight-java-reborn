@@ -76,7 +76,7 @@ public class UlViewConfig {
     /**
      * Whether to render the view with the compositor.
      */
-    public boolean enableCompositor = false;
+    public boolean enableCompositor = true;
 
     /**
      * The user-agent string to use, or null, to use the one of Ultralight.

@@ -10,6 +10,7 @@
 #include "ujr/Renderer.hpp"
 #include "ujr/Session.hpp"
 #include "ujr/support/GC.hpp"
+#include "ujr/util/CNumericLocale.hpp"
 #include "ujr/util/JniEntryGuard.hpp"
 #include "ujr/View.hpp"
 
@@ -91,6 +92,7 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlRenderer_n
             ul_session = ultralight::RefPtr(session_ref);
         }
 
+        ujr::CNumericLocale c_locale;
         auto view_ref = renderer->CreateView(width, height, ul_config, std::move(ul_session));
         auto view = view_ref.LeakRef(); // We will take over reference counting ourselves
 
@@ -130,28 +132,6 @@ JNIEXPORT void JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlRenderer_nati
 
         auto *renderer = reinterpret_cast<ultralight::Renderer *>(JNIUlRenderer::HANDLE.get(env, self));
         renderer->Render();
-    });
-}
-
-JNIEXPORT void JNICALL
-Java_net_janrupf_ujr_platform_jni_impl_JNIUlRenderer_nativeRenderOnly(JNIEnv *env, jobject self, jobjectArray views) {
-    ujr::jni_entry_guard(env, [&](auto env) {
-        using ujr::native_access::JNIUlRenderer;
-        using ujr::native_access::JNIUlView;
-
-        auto *renderer = reinterpret_cast<ultralight::Renderer *>(JNIUlRenderer::HANDLE.get(env, self));
-
-        auto view_count = env->GetArrayLength(views);
-        auto **view_handles = new ultralight::View *[view_count];
-
-        for (jsize i = 0; i < view_count; i++) {
-            auto j_view = ujr::JniLocalRef<jobject>::wrap(env, env->GetObjectArrayElement(views, i));
-            auto *view = reinterpret_cast<ultralight::View *>(JNIUlView::HANDLE.get(env, j_view));
-
-            view_handles[i] = view;
-        }
-
-        renderer->RenderOnly(view_handles, view_count);
     });
 }
 

@@ -45,12 +45,12 @@ Add the dependencies:
 ```kotlin
 dependencies {
     // Java libraries, these are needed for compilation and runtime
-    implementation("net.ccbluex.ultralight:ultralight-java-reborn-core:0.2.0")
-    implementation("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.2.0")
+    implementation("net.ccbluex.ultralight:ultralight-java-reborn-core:0.3.0")
+    implementation("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.3.0")
 
     // The native library, needed at runtime only (it contains no Java code)
-    runtimeOnly("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.2.0:linux-x64")
-    // or linux-arm64, win-x64, mac-x64, mac-arm64
+    runtimeOnly("net.ccbluex.ultralight:ultralight-java-reborn-platform-jni:0.3.0:linux-x64")
+    // or win-x64, mac-arm64
 }
 ```
 
@@ -76,10 +76,14 @@ The `ujr.ultralightDirectory` system property and the `ULTRALIGHT_DIR` environme
 |---|---|
 | 0.1.0 | 1.3 (`c909371`) |
 | 0.2.0 | 1.4.0 |
+| 0.3.0 | 2.0.0-beta.2 |
 
 Ultralight 1.3's `libWebCore.so` requires an executable stack, which glibc 2.41 and newer refuse to load.
 
-Ultralight 1.4 needs `UltralightRenderer.refreshDisplay(0)` before every `render()` for animations and scrolling.
+Ultralight 1.4 and newer need `UltralightRenderer.refreshDisplay(0)` before every `render()` for animations and
+scrolling.
+
+Ultralight 2.0 is only available for linux-x64, mac-arm64 and win-x64.
 
 ## GPU rendering
 
@@ -88,13 +92,16 @@ To render on the GPU, implement `UltralightGPUDriver` with your graphics API and
 through the driver during `render()`, and `UltralightView.renderTarget()` tells which texture holds the result. The
 buffers the driver receives point into Ultralight's memory and are only valid during the call.
 
+Ultralight 2.0 draws paths and text analytically with Photon, so a driver has to implement every `UlShaderType`. The
+stock shaders are in `platform/shaders` of the SDK.
+
 ## Building
 
 The build downloads the Ultralight SDK it targets from Ultralight. To build against another copy, pass the archive
 or an extracted SDK:
 
 ```sh
-./gradlew -Pujr.ultralightSdk=path/to/ultralight-free-sdk-1.4.0-linux-x64.7z assemble
+./gradlew -Pujr.ultralightSdk=path/to/ul-sdk-2.0.0-beta.2-linux-x64-free.7z assemble
 ```
 
 To run the smoke test, also pass the runtime, for example the extracted SDK: `-Pujr.ultralightDirectory=path/to/sdk

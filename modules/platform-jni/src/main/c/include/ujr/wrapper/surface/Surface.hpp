@@ -15,6 +15,18 @@ namespace ujr {
     public:
         explicit Surface(JniGlobalRef<jobject> j_surface);
 
+        ~Surface() override;
+
+        /**
+         * Finds the JNI surface behind a surface of Ultralight.
+         *
+         * Ultralight 2.0 builds its own surfaces without RTTI, so a dynamic_cast on them crashes.
+         *
+         * @param surface the surface
+         * @return the JNI surface, or nullptr if Ultralight created the surface
+         */
+        static Surface *from(ultralight::Surface *surface);
+
         [[nodiscard]] uint32_t width() const final;
 
         [[nodiscard]] uint32_t height() const final;
@@ -34,6 +46,8 @@ namespace ujr {
         [[nodiscard]] ultralight::IntRect dirty_bounds() const final;
 
         void ClearDirtyBounds() final;
+
+        bool Scroll(const ultralight::IntRect &rect, int dx, int dy) final;
 
         /**
          * Retrieves the underlying java surface instance.

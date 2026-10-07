@@ -6,7 +6,7 @@
 
 namespace ujr {
     /**
-     * Clipboard adapter for Ultralight delegating to a Java instance.
+     * Clipboard adapter for Ultralight delegating to a Java instance, which only handles plain text.
      */
     class Clipboard : public ultralight::Clipboard {
     private:
@@ -17,9 +17,9 @@ namespace ujr {
 
         void Clear() final;
 
-        ultralight::String ReadPlainText() final;
+        ultralight::RefPtr<ultralight::ClipboardData> Read() final;
 
-        void WritePlainText(const ultralight::String &text) final;
+        void Write(ultralight::RefPtr<ultralight::ClipboardData> data) final;
 
         /**
          * Retrieves the underlying java clipboard instance.

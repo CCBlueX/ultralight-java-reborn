@@ -59,6 +59,22 @@ JNIEXPORT jobject JNICALL Java_net_janrupf_ujr_platform_jni_impl_JNIUlBitmap_nat
                 return UlBitmapFormat::A8_UNORM.get(env).leak();
             case ultralight::BitmapFormat::BGRA8_UNORM_SRGB:
                 return UlBitmapFormat::BGRA8_UNORM_SRGB.get(env).leak();
+            case ultralight::BitmapFormat::RG8_UNORM:
+                return UlBitmapFormat::RG8_UNORM.get(env).leak();
+            case ultralight::BitmapFormat::BC1_UNORM:
+                return UlBitmapFormat::BC1_UNORM.get(env).leak();
+            case ultralight::BitmapFormat::BC2_UNORM:
+                return UlBitmapFormat::BC2_UNORM.get(env).leak();
+            case ultralight::BitmapFormat::BC3_UNORM:
+                return UlBitmapFormat::BC3_UNORM.get(env).leak();
+            case ultralight::BitmapFormat::BC7_UNORM:
+                return UlBitmapFormat::BC7_UNORM.get(env).leak();
+            case ultralight::BitmapFormat::RGBA16F:
+                return UlBitmapFormat::RGBA16F.get(env).leak();
+            case ultralight::BitmapFormat::RGBA16UI:
+                return UlBitmapFormat::RGBA16UI.get(env).leak();
+            case ultralight::BitmapFormat::RGBA32F:
+                return UlBitmapFormat::RGBA32F.get(env).leak();
             default:
                 throw std::runtime_error("Unknown bitmap format");
         }

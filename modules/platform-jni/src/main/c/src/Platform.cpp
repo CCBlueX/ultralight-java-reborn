@@ -18,6 +18,7 @@
 
 #include "ujr/Platform.hpp"
 #include "ujr/Renderer.hpp"
+#include "ujr/util/CNumericLocale.hpp"
 #include "ujr/util/JniEntryGuard.hpp"
 #include "ujr/wrapper/clipboard/Clipboard.hpp"
 #include "ujr/wrapper/filesystem/Filesystem.hpp"
@@ -72,8 +73,9 @@ Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeSetConfig(JNIEnv *env
         native_config.user_stylesheet
             = UlConfig::USER_STYLESHEET.get(env, config).require_non_null_argument("config.userStylesheet").to_utf16();
         native_config.force_repaint = UlConfig::FORCE_REPAINT.get(env, config);
-        native_config.animation_timer_delay = UlConfig::ANIMATION_TIMER_DELAY.get(env, config);
-        native_config.scroll_timer_delay = UlConfig::SCROLL_TIMER_DELAY.get(env, config);
+        native_config.enable_photon = UlConfig::ENABLE_PHOTON.get(env, config);
+        native_config.enable_photon_text = UlConfig::ENABLE_PHOTON_TEXT.get(env, config);
+        native_config.photon_text_min_px = static_cast<uint32_t>(UlConfig::PHOTON_TEXT_MIN_PX.get(env, config));
         native_config.recycle_delay = UlConfig::RECYCLE_DELAY.get(env, config);
         native_config.memory_cache_size = static_cast<uint32_t>(UlConfig::MEMORY_CACHE_SIZE.get(env, config));
         native_config.page_cache_size = static_cast<uint32_t>(UlConfig::PAGE_CACHE_SIZE.get(env, config));
@@ -368,6 +370,7 @@ Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeGetGPUDriver(JNIEnv *
 JNIEXPORT jobject JNICALL
 Java_net_janrupf_ujr_platform_jni_impl_JNIUlPlatform_nativeCreateRenderer(JNIEnv *env, jobject) {
     return ujr::jni_entry_guard(env, [&](auto env) -> jobject {
+        ujr::CNumericLocale c_locale;
         auto ul_renderer = ultralight::Renderer::Create();
         auto renderer = ujr::Renderer::wrap(env, ul_renderer);
 
